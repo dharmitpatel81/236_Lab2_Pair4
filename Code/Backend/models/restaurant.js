@@ -158,12 +158,8 @@ restaurantSchema.pre('save', async function(next) {
 
 // Method to compare password
 restaurantSchema.methods.comparePassword = async function(candidatePassword) {
-  console.log('Comparing restaurant passwords...');
-  console.log('Candidate password length:', candidatePassword.length);
-  console.log('Stored hash:', this.password);
   try {
     const isMatch = await bcrypt.compare(candidatePassword, this.password);
-    console.log('Restaurant password comparison result:', isMatch);
     return isMatch;
   } catch (error) {
     console.error('Error comparing restaurant passwords:', error);

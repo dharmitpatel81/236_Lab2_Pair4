@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import { logoutUser, logoutRestaurantOwner } from "../../redux/slices/auth/authSlice";
+import { logoutCustomer, logoutRestaurant } from "../../redux/slices/auth/authSlice";
 import "./Navbar.css";
 
 const NavSidebar = () => {
@@ -9,7 +9,7 @@ const NavSidebar = () => {
   const dispatch = useDispatch();
 
   // Get authentication state from Redux
-  const { isCustomerAuthenticated, isOwnerAuthenticated } = useSelector((state) => state.auth);
+  const { isCustomerAuthenticated, isRestaurantAuthenticated } = useSelector((state) => state.auth);
 
   // Close sidebar when clicking anywhere outside
   useEffect(() => {
@@ -29,9 +29,9 @@ const NavSidebar = () => {
   // Handle Logout
   const handleLogout = () => {
     if (isCustomerAuthenticated) {
-      dispatch(logoutUser());
-    } else if (isOwnerAuthenticated) {
-      dispatch(logoutRestaurantOwner());
+      dispatch(logoutCustomer());
+    } else if (isRestaurantAuthenticated) {
+      dispatch(logoutRestaurant());
     }
   };
 
@@ -47,12 +47,14 @@ const NavSidebar = () => {
           >
             &#9776;
           </button>
-          <span className="text-white fs-4">
-            Uber <b>Eats</b>
-          </span>
+          <Link to="/" className="text-decoration-none">
+            <span className="text-white fs-4">
+              Uber <b>Eats</b>
+            </span>
+          </Link>
         </div>
         <div className="ms-auto">
-          {isCustomerAuthenticated || isOwnerAuthenticated ? (
+          {isCustomerAuthenticated || isRestaurantAuthenticated ? (
             <button className="btn btn-light me-2 rounded-pill" onClick={handleLogout}>
               Logout
             </button>
@@ -76,7 +78,7 @@ const NavSidebar = () => {
 
       {/* Sidebar Menu */}
       <div className={`sidebar ${isMenuOpen ? "open" : ""}`}>
-        {isCustomerAuthenticated || isOwnerAuthenticated ? (
+        {isCustomerAuthenticated || isRestaurantAuthenticated ? (
           <button className="btn btn-light mt-2 w-100" onClick={handleLogout}>
             Logout
           </button>

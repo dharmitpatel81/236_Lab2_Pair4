@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import "bootstrap/dist/css/bootstrap.min.css";
-import axios from "axios";
+import axios from "../../config/axios";
 import { useDispatch, useSelector } from "react-redux";
 import { createRestaurant } from "../../redux/slices/restaurant/restaurantSlice"; //
 import NavbarDark from "../Common/NavbarDark";
@@ -123,7 +123,7 @@ const RestaurantSignup = () => {
             <button className="btn text-dark border-0 d-flex align-items-center mt-3 ms-3 fw-bold" 
                 style={{ backgroundColor: 'transparent' }} 
                 onClick={() => navigate('/')}>
-                <span className="fs-5 me-1">←</span><u>Back to Home</u>
+                <span className="fs-5 me-1">←</span><u>Back</u>
             </button>
             <h3 className="text-center mt-4 mb-4 fw-bold">Create a Restaurant Account</h3>
             {loading && <p className="text-center text-primary">Loading...</p>}

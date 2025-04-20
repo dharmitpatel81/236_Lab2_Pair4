@@ -74,8 +74,8 @@ export const removeFavorite = createAsyncThunk(
     }
 );
 
-// Add selector function
-export const selectFavorites = state => state.favorites.favoriteRestaurants;
+// Selector for favorites
+export const selectFavorites = (state) => state.favorites.favoriteRestaurants;
 
 // Favorite Slice
 const favoriteSlice = createSlice({
@@ -133,4 +133,4 @@ const favoriteSlice = createSlice({
     },
 });
 
-export default favoriteSlice.reducer;
+export default favoriteSlice.reducer; 

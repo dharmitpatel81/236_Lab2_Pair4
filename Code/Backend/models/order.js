@@ -76,6 +76,10 @@ const orderSchema = new mongoose.Schema({
       type: String,
       required: true
     },
+    imageUrl: {
+      type: String,
+      default: null
+    },
     address: {
       street: {
         type: String,
@@ -119,6 +123,10 @@ const orderSchema = new mongoose.Schema({
   taxAmount: {
     type: Number,
     required: true
+  },
+  deliveryFee: {
+    type: Number,
+    default: null
   },
   totalAmount: {
     type: Number,

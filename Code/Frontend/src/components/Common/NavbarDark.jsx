@@ -1,82 +1,138 @@
 import React, { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import { logoutUser, logoutRestaurantOwner } from "../../redux/slices/auth/authSlice";
+import { logoutCustomer, logoutRestaurant } from "../../redux/slices/auth/authSlice";
+import { selectOrderPreference, setOrderPreference } from "../../redux/slices/customer/cartSlice";
 import "./Navbar.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
 import { selectCartItemsCount } from '../../redux/slices/customer/cartSlice';
 import axios from "axios";
 axios.defaults.withCredentials = true;
 
+// Add the CSS for pill toggle here
+const toggleStyles = `
+.pill-toggle {
+  position: relative;
+  display: inline-flex;
+  background-color: #f0f0f0;
+  border-radius: 30px;
+  padding: 3px;
+  width: 160px;
+  height: 32px;
+  cursor: pointer;
+}
+
+.pill-toggle-option {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #555;
+  transition: color 0.3s;
+}
+
+.pill-toggle-option.active {
+  color: #000;
+}
+
+.pill-toggle-slider {
+  position: absolute;
+  left: 3px;
+  top: 3px;
+  bottom: 3px;
+  width: calc(50% - 3px);
+  background-color: white;
+  border-radius: 30px;
+  transition: transform 0.3s;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.pill-toggle[data-active="delivery"] .pill-toggle-slider {
+  transform: translateX(calc(100% + 0px));
+}
+`;
+
+const DEFAULT_PROFILE_IMAGE = "https://res.cloudinary.com/dvylvq84d/image/upload/v1744050200/profile_placeholder.png";
+const DEFAULT_IMAGE_PLACEHOLDER = "https://res.cloudinary.com/dvylvq84d/image/upload/v1744151036/ImagePlaceholder_gg1xob.png";
+
 const ImageDisplay = () => {
-  const [imageUrl, setImageUrl] = useState("");
-  const customerId = useSelector((state) => state.auth.customer?.id);
-  const ownerId = useSelector((state) => state.auth.restaurantOwner?.id);
-  const isOwnerAuthenticated = useSelector((state) => state.auth.isOwnerAuthenticated);
+  const [imageUrl, setImageUrl] = useState(DEFAULT_PROFILE_IMAGE);
+  const isRestaurantAuthenticated = useSelector((state) => state.auth.isRestaurantAuthenticated);
   const isCustomerAuthenticated = useSelector((state) => state.auth.isCustomerAuthenticated);
+  const customer = useSelector((state) => state.auth.customer);
+  const restaurant = useSelector((state) => state.auth.restaurant);
   const navigate = useNavigate();
   
   useEffect(() => {
     // For customer profile picture
-    if (isCustomerAuthenticated && customerId) {
-      axios
-        .get(`http://127.0.0.1:3000/api/customers/${customerId}`)
-        .then((response) => {
-          console.log('Customer data:', response.data);
-          if (response.data.image_url) {
-            setImageUrl(`http://127.0.0.1:3000${response.data.image_url}`);
-          } else {
-            setImageUrl("http://127.0.0.1:3000/uploads/blank.png"); // Default image
-          }
-        })
-        .catch((error) => {
-          console.error("Error fetching customer image:", error);
-          setImageUrl("http://127.0.0.1:3000/uploads/blank.png"); // Default image
-        });
+    if (isCustomerAuthenticated && customer) {
+      if (customer.imageUrl) {
+        setImageUrl(customer.imageUrl);
+      } else {
+        setImageUrl(DEFAULT_PROFILE_IMAGE);
+      }
     } 
-    // For restaurant owner profile picture
-    else if (isOwnerAuthenticated && ownerId) {
-      axios
-        .get(`http://127.0.0.1:3000/api/restaurantOwners/${ownerId}`)
-        .then((response) => {
-          console.log('Owner data:', response.data);
-          if (response.data.image_url) {
-            setImageUrl(`http://127.0.0.1:3000${response.data.image_url}`);
-          } else {
-            setImageUrl("http://127.0.0.1:3000/uploads/blank.png"); // Default image
-          }
-        })
-        .catch((error) => {
-          console.error("Error fetching owner image:", error);
-          setImageUrl("http://127.0.0.1:3000/uploads/blank.png"); // Default image
-        });
+    // For restaurant profile picture
+    else if (isRestaurantAuthenticated && restaurant) {
+      if (restaurant.imageUrl) {
+        setImageUrl(restaurant.imageUrl);
+      } else {
+        setImageUrl(DEFAULT_IMAGE_PLACEHOLDER);
+      }
     } else {
-      setImageUrl("http://127.0.0.1:3000/uploads/blank.png"); // Default image
+      setImageUrl(DEFAULT_PROFILE_IMAGE);
     }
-  }, [customerId, ownerId, isCustomerAuthenticated, isOwnerAuthenticated]);
+  }, [isCustomerAuthenticated, isRestaurantAuthenticated, customer, restaurant]);
 
   return (
     <div className="profile-image-container">
-      {imageUrl && (
-        <img
-          src={imageUrl}
-          alt="Profile"
-          className="rounded-circle profile-image"
-          style={{ width: '80px', height: '80px', objectFit: 'cover', margin: '10px auto', display: 'block' }}
-        />
-      )}
+      <img
+        src={imageUrl}
+        alt="Profile"
+        className="rounded-circle profile-image"
+        style={{ 
+          width: '80px', 
+          height: '80px', 
+          objectFit: 'cover', 
+          margin: '10px auto', 
+          display: 'block',
+          border: '2px solid #e4e4e4'
+        }}
+        onError={(e) => {
+          e.target.onerror = null; // Prevent infinite loop
+          e.target.src = isRestaurantAuthenticated ? DEFAULT_IMAGE_PLACEHOLDER : DEFAULT_PROFILE_IMAGE;
+        }}
+      />
     </div>
   );
 };
 
-const NavSidebar = () => {
+const NavSidebar = ({ hideToggle = false }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  // Check if current page is a restaurant detail page or cart page
+  const shouldHideToggle = 
+    hideToggle || 
+    (location.pathname !== '/restaurants' && 
+     location.pathname !== '/customer/favorites');
 
   // Get authentication state and cart items count from Redux
-  const { isCustomerAuthenticated, isOwnerAuthenticated, customer } = useSelector((state) => state.auth);
-  const cartItemCount = useSelector(selectCartItemsCount); // Assuming cart item count is in Redux state
-  const ownerId = useSelector((state) => state.auth.restaurantOwner?.id);
+  const { isCustomerAuthenticated, isRestaurantAuthenticated, customer } = useSelector((state) => state.auth);
+  const cartItemCount = useSelector(selectCartItemsCount);
+  const restaurantId = useSelector((state) => state.auth.restaurant?.id);
+  const orderPreference = useSelector(selectOrderPreference);
+
+  // Toggle between delivery and pickup
+  const toggleOrderPreference = () => {
+    const newPreference = orderPreference === "delivery" ? "pickup" : "delivery";
+    dispatch(setOrderPreference(newPreference));
+  };
 
   // Close sidebar when clicking anywhere outside
   useEffect(() => {
@@ -96,18 +152,21 @@ const NavSidebar = () => {
   // Handle Logout
   const handleLogout = () => {
     if (isCustomerAuthenticated) {
-      dispatch(logoutUser()).then(() => {
+      dispatch(logoutCustomer()).then(() => {
         navigate('/customer/login');
       });
-    } else if (isOwnerAuthenticated) {
-      dispatch(logoutRestaurantOwner()).then(() => {
-        navigate('/owner/login');
+    } else if (isRestaurantAuthenticated) {
+      dispatch(logoutRestaurant()).then(() => {
+        navigate('/restaurant/login');
       });
     }
   };
 
   return (
     <>
+      {/* Add CSS for pill toggle */}
+      <style>{toggleStyles}</style>
+      
       {/* Navbar */}
       <nav className="navbar navbar-expand-lg navbar-dark px-4">
         <div className="d-flex align-items-center">
@@ -118,18 +177,33 @@ const NavSidebar = () => {
           >
             &#9776;
           </button>
-          <span className="text-black fs-4">
-            Uber <b>Eats</b>
-          </span>
+          <Link to="/" className="text-decoration-none">
+            <span className="text-black fs-4">
+              Uber <b>Eats</b>
+            </span>
+          </Link>
+          
+          {/* Add the pill toggle next to UberEats text, but hide it on restaurant detail pages */}
+          {isCustomerAuthenticated && !shouldHideToggle && (
+            <div className="pill-toggle ms-3" data-active={orderPreference} onClick={toggleOrderPreference}>
+              <div className={`pill-toggle-option ${orderPreference === "pickup" ? "active" : ""}`}>
+                Pickup
+              </div>
+              <div className={`pill-toggle-option ${orderPreference === "delivery" ? "active" : ""}`}>
+                Delivery
+              </div>
+              <div className="pill-toggle-slider"></div>
+            </div>
+          )}
         </div>
         <div className="ms-auto d-flex align-items-center">
           {isCustomerAuthenticated && (
             <Link to="/cart" className="btn btn-white position-relative rounded-circle me-4 fs-4" 
               style={{ padding: "1px"}}>
               <strong>
-                <i className="bi bi-cart" style={{ fontWeight: "bolder", fontSize: "1.5rem" }}></i>
+                <i className="bi bi-cart-fill" style={{ fontWeight: "bold", fontSize: "1.3rem" }}></i>
               </strong>
-              <span className="position-absolute top-0 start-100 translate-middle badge rounded-circle bg-danger"
+              <span className="position-absolute top-0 start-100 translate-middle badge rounded-circle bg-success"
                 style={{ 
                   fontSize: "0.8rem",  
                   padding: "4px 6px",  
@@ -139,7 +213,7 @@ const NavSidebar = () => {
               </span>
             </Link>
           )}
-          {isCustomerAuthenticated || isOwnerAuthenticated ? (
+          {isCustomerAuthenticated || isRestaurantAuthenticated ? (
             <button className="btn btn-light mx-2 rounded-pill w-100"  style={{ backgroundColor: "#e4e4e4" }} onClick={handleLogout}>
               Logout
             </button>
@@ -166,20 +240,20 @@ const NavSidebar = () => {
       {/* Sidebar Menu */}
       <div className={`sidebar ${isMenuOpen ? "open" : ""}`}>
         {/* Conditionally render profile image if authenticated */}
-        {(isCustomerAuthenticated || isOwnerAuthenticated) && <ImageDisplay />}
+        {(isCustomerAuthenticated || isRestaurantAuthenticated) && <ImageDisplay />}
 
-        {isCustomerAuthenticated || isOwnerAuthenticated ? (
+        {isCustomerAuthenticated || isRestaurantAuthenticated ? (
           <>
             {/* Edit Profile Button */}
             {isCustomerAuthenticated && customer && (
               <Link to={`/customer/profile/${customer.id}`}>
                 <button className="btn btn-outline-dark mt-2 w-100">
-                  Edit Profile
+                  Manage Profile
                 </button>
               </Link>
             )}
-            {isOwnerAuthenticated && (
-              <Link to={`/owner/profile/${ownerId}`}>
+            {isRestaurantAuthenticated && (
+              <Link to={`/restaurant/profile/${restaurantId}`}>
                 <button className="btn btn-outline-dark mt-2 w-100">
                   Edit Profile
                 </button>
@@ -197,7 +271,7 @@ const NavSidebar = () => {
                   className="fw-bold mt-4 ms-0 px-2 py-0 text-start text-dark mb-0 w-100 border-0" 
                   style={{ backgroundColor: "transparent", cursor: "pointer" }}
                 >
-                  Orders  <i className="bi bi-bag"></i>
+                  Orders   <i className="bi bi-bag text-black" style={{ fontSize: "0.8rem" }}></i>
                 </button>
                 </Link>
                 {/* Orders link for customer */}
@@ -206,19 +280,14 @@ const NavSidebar = () => {
                   className="fw-bold mt-1 ms-0 px-2 py-0 text-start text-dark w-100 border-0" 
                   style={{ backgroundColor: "transparent", cursor: "pointer" }}
                 >
-                  Favorites  <i className="bi bi-heart text-black"></i>
+                  Favorites   <i className="bi bi-heart text-black" style={{ fontSize: "0.8rem" }}></i>
                 </button>
                 </Link>
               </>
             )}
-            {isOwnerAuthenticated && (
+            {isRestaurantAuthenticated && (
               <>
-                <Link to="/owner/home">
-                  <button className="fw-bold mt-3 ms-0 px-2 py-0 text-start text-dark w-100 border-0" 
-                  style={{ backgroundColor: "transparent", cursor: "pointer" }}>
-                    My Restaurants  <i className="bi bi-building text-black"></i>
-                  </button>
-                </Link>
+                {/* No links for restaurant */}
               </>
             )}
           </>
@@ -231,14 +300,14 @@ const NavSidebar = () => {
               <button className="btn btn-dark w-100 mt-2">Sign up</button>
             </Link>
             <Link
-              to="/owner/login"
+              to="/restaurant/login"
               className="text-dark text-decoration-none d-block fw-bolder mt-3"
               style={{ fontSize: "14px" }}
             >
               Manage your Restaurant
             </Link>
             <Link
-              to="/owner/signup"
+              to="/restaurant/signup"
               className="text-dark text-decoration-none d-block fw-bold mt-1"
               style={{ fontSize: "14px" }}
             >

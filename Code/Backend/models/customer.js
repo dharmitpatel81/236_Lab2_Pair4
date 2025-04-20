@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
+const { DEFAULT_PROFILE_IMAGE } = require('../utils/imageUpload');
 
 // Function to check if password needs to be hashed
 const needsPasswordHash = (password) => {
@@ -63,7 +64,7 @@ const customerSchema = new mongoose.Schema({
   }],
   imageUrl: {
     type: String,
-    default: null
+    default: DEFAULT_PROFILE_IMAGE
   },
   favorites: [{
     type: mongoose.Schema.Types.ObjectId,
@@ -79,9 +80,6 @@ customerSchema.pre('save', async function(next) {
   this.password = await bcrypt.hash(this.password, 10);
   next();
 });
-
-// Method to check password
-
 
 // Pre-save middleware to hash password
 customerSchema.pre('save', async function(next) {

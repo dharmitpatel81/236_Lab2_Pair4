@@ -1,18 +1,54 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import axios from "axios";
-axios.defaults.withCredentials = true;
+import axios from "../../../config/axios";
 
 // Async thunk to create a customer
 export const createCustomer = createAsyncThunk(
     "customers/createCustomer",
-    async (customerData, { rejectWithValue }) => {
+    async (formData, { rejectWithValue }) => {
         try {
-            const response = await axios.post("/api/customers", customerData, {
-                headers: { "Content-Type": "application/json" },
-            });
-            return response.data; // Assuming backend returns the created customer
+            // Check if there's an image file
+            const hasImage = formData.has('image');
+            
+            if (hasImage) {
+                // With image: Use FormData approach
+                const response = await axios.post("/api/customers/register", formData, {
+                    headers: {
+                        'Content-Type': 'multipart/form-data'
+                    }
+                });
+                return response.data;
+            } else {
+                // No image: Use direct JSON approach
+                // Convert FormData to JSON object
+                const jsonData = {
+                    firstName: formData.get('firstName'),
+                    lastName: formData.get('lastName'),
+                    email: formData.get('email'),
+                    password: formData.get('password'),
+                    phone: formData.get('phone'),
+                    dateOfBirth: formData.get('dateOfBirth'),
+                    addresses: JSON.parse(formData.get('addresses'))
+                };
+                
+                const response = await axios.post("/api/customers/register", jsonData, {
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                return response.data;
+            }
         } catch (error) {
-            return rejectWithValue(error.response?.data || "Something went wrong");
+            if (error.response?.data?.errors) {
+                return rejectWithValue({
+                    message: error.response.data.message,
+                    errors: error.response.data.errors
+                });
+            }
+            
+            return rejectWithValue({
+                message: error.response?.data?.message || error.message,
+                errors: []
+            });
         }
     }
 );
@@ -22,8 +58,7 @@ export const updateCustomer = createAsyncThunk(
     "customers/updateCustomer",
     async ({ customerId, customerData }, { rejectWithValue }) => {
         try {
-            console.log(`Sending update to API for customer ID: ${customerId}`);
-            console.log('Data being sent:', customerData);
+
             
             // Add validation for required fields
             const requiredFields = ['firstName', 'lastName', 'email', 'phone'];
@@ -33,14 +68,12 @@ export const updateCustomer = createAsyncThunk(
                 return rejectWithValue(`Missing required fields: ${missingFields.join(', ')}`);
             }
             
-            const response = await axios.put(`/api/customers/${customerId}`, customerData, {
+            const response = await axios.put(`/api/customers/profile/${customerId}`, customerData, {
                 headers: { 
                     "Content-Type": "application/json"
-                },
-                withCredentials: true
+                }
             });
             
-            console.log('Update response:', response.data);
             
             // Return the customer object from the response
             return response.data.customer || response.data.updatedCustomer || response.data;
@@ -64,7 +97,7 @@ export const fetchCustomer = createAsyncThunk(
     "customers/fetchCustomer",
     async (customerId, { rejectWithValue }) => {
         try {
-            const response = await axios.get(`/api/customers/${customerId}`);
+            const response = await axios.get(`/api/customers/profile/${customerId}`);
             return response.data; // Assuming backend returns customer data
         } catch (error) {
             return rejectWithValue(error.response?.data || "Failed to fetch customer data");
@@ -72,16 +105,20 @@ export const fetchCustomer = createAsyncThunk(
     }
 );
 
-
 const customerSlice = createSlice({
-    name: "customers",
+    name: "customer",
     initialState: {
         customer: null,
         loading: false,
         success: false,
-        error: null,
+        error: null
     },
-    reducers: {},
+    reducers: {
+        clearCustomerError: (state) => {
+            state.error = null;
+            state.success = false;
+        }
+    },
     extraReducers: (builder) => {
         builder
             // Create Customer cases
@@ -94,7 +131,7 @@ const customerSlice = createSlice({
                 state.loading = false;
                 state.success = true;
                 state.error = null;
-                state.customer = action.payload; // Store customer in Redux state
+                state.customer = action.payload.customer;
             })
             .addCase(createCustomer.rejected, (state, action) => {
                 state.loading = false;
@@ -137,7 +174,8 @@ const customerSlice = createSlice({
                 state.success = false;
                 state.error = action.payload;
             });
-    },
+    }
 });
 
+export const { clearCustomerError } = customerSlice.actions;
 export default customerSlice.reducer;

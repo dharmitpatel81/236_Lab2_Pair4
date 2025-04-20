@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const { uploadImage } = require('../utils/imageUpload');
 const customerController = require('../controllers/customerController');
 const favoriteController = require('../controllers/favoriteController');
 const { authenticateCustomer } = require('../middleware/auth');
@@ -10,27 +11,56 @@ router.post('/login', customerController.login);
 router.get('/check-auth', customerController.checkAuth);
 
 // Protected routes
-router.get('/profile', authenticateCustomer, customerController.getProfile);
-router.put('/profile', authenticateCustomer, customerController.updateProfile);
+router.get('/profile/:id', authenticateCustomer, customerController.getProfile);
+router.put('/profile/:id', authenticateCustomer, customerController.updateProfile);
 router.post('/logout', authenticateCustomer, customerController.logout);
-
-// Favorite routes
-router.post('/favorites/add', authenticateCustomer, favoriteController.addFavorite);
-router.post('/favorites/remove', authenticateCustomer, favoriteController.removeFavorite);
-router.get('/favorites', authenticateCustomer, favoriteController.getFavorites);
 
 // Address management
 router.post('/address', authenticateCustomer, customerController.addAddress);
 router.put('/address/:addressId', authenticateCustomer, customerController.updateAddress);
 router.delete('/address/:addressId', authenticateCustomer, customerController.deleteAddress);
 
+// Favorite routes
+router.post('/favorites/add', authenticateCustomer, favoriteController.addFavorite);
+router.delete('/favorites/remove/:restaurantId', authenticateCustomer, favoriteController.removeFavorite);
+router.get('/favorites/:id', authenticateCustomer, favoriteController.getFavorites);
+
 // Account deletion
-router.delete('/account', authenticateCustomer, customerController.deleteAccount);
+router.delete('/account/:id', authenticateCustomer, customerController.deleteAccount);
 
 // Order management
 router.post('/orders/create/:restaurantId', authenticateCustomer, customerController.createOrder);
-router.get('/orders', authenticateCustomer, customerController.getCustomerOrders);
-router.get('/orders/:orderId', authenticateCustomer, customerController.getOrderDetails);
+router.get('/orders/:customerId', authenticateCustomer, customerController.getCustomerOrders);
+router.get('/orders/single/:orderId', authenticateCustomer, customerController.getOrderDetails);
 router.put('/orders/:orderId/cancel', authenticateCustomer, customerController.cancelOrder);
+
+// Upload profile image
+router.post('/upload-image', async (req, res) => {
+    try {
+        if (!req.files || !req.files.image) {
+            return res.status(400).json({ message: 'No image file uploaded' });
+        }
+
+        // Check if multiple files were uploaded
+        if (Array.isArray(req.files.image)) {
+            return res.status(400).json({ message: 'Multiple file upload is not allowed. Please upload a single image.' });
+        }
+
+        const file = req.files.image;
+        const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg'];
+        
+        if (!allowedTypes.includes(file.mimetype)) {
+            return res.status(400).json({ 
+                message: 'Invalid file type. Only JPG, JPEG, and PNG images are allowed' 
+            });
+        }
+
+        const imageUrl = await uploadImage(file, 'customers');
+        res.json({ imageUrl });
+    } catch (error) {
+        console.error('Error uploading customer image:', error);
+        res.status(500).json({ message: 'Error uploading image' });
+    }
+});
 
 module.exports = router;

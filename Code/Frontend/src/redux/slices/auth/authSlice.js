@@ -17,8 +17,8 @@ const api = axios.create({
 });
 
 // Login Customer
-export const loginUser = createAsyncThunk(
-  "customerAuth/loginUser",
+export const loginCustomer = createAsyncThunk(
+  "customerAuth/loginCustomer",
   async (credentials, { rejectWithValue }) => {
     try {
       const response = await api.post(
@@ -29,10 +29,10 @@ export const loginUser = createAsyncThunk(
       console.log("Login API Response:", response.data);
       
       // Store in localStorage as backup
-      localStorage.setItem('customerAuth', JSON.stringify({
-        isCustomerAuthenticated: true,
-        customer: response.data.customer
-      }));
+      // localStorage.setItem('customerAuth', JSON.stringify({
+      //   isCustomerAuthenticated: true,
+      //   customer: response.data.customer
+      // }));
 
       return response.data.customer;
     } catch (error) {
@@ -41,7 +41,6 @@ export const loginUser = createAsyncThunk(
     }
   }
 );
-
 
 // Check Customer Authentication
 export const checkCustomerAuth = createAsyncThunk(
@@ -53,7 +52,7 @@ export const checkCustomerAuth = createAsyncThunk(
         "/api/customers/check-auth"
       );
       
-      console.log("Check Customer Auth Response:", response.data);
+      // console.log("Check Customer Auth Response:", response.data);
       
       if (response.data.isCustomerAuthenticated) {
         return {
@@ -63,32 +62,32 @@ export const checkCustomerAuth = createAsyncThunk(
       }
       
       // If server says not authenticated, try backup from localStorage
-      const storedAuth = localStorage.getItem('customerAuth');
-      if (storedAuth) {
-        const parsedAuth = JSON.parse(storedAuth);
-        if (parsedAuth.isCustomerAuthenticated) {
-          return parsedAuth;
-        }
-      }
+      // const storedAuth = localStorage.getItem('customerAuth');
+      // if (storedAuth) {
+      //   const parsedAuth = JSON.parse(storedAuth);
+      //   if (parsedAuth.isCustomerAuthenticated) {
+      //     return parsedAuth;
+      //   }
+      // }
       
       return { isCustomerAuthenticated: false };
     } catch (error) {
       console.error("Check Customer Auth Error:", error.response?.data || error.message);
       
       // If server request fails, try backup from localStorage
-      const storedAuth = localStorage.getItem('customerAuth');
-      if (storedAuth) {
-        return JSON.parse(storedAuth);
-      }
+      // const storedAuth = localStorage.getItem('customerAuth');
+      // if (storedAuth) {
+      //   return JSON.parse(storedAuth);
+      // }
       
-      return rejectWithValue(error.response?.data || "Something went wrong");
+      return { isCustomerAuthenticated: false };
     }
   }
 );
 
 // Logout Customer
-export const logoutUser = createAsyncThunk(
-  "customerAuth/logoutUser",
+export const logoutCustomer = createAsyncThunk(
+  "customerAuth/logoutCustomer",
   async (_, { rejectWithValue }) => {
     try {
       await api.post(
@@ -96,17 +95,17 @@ export const logoutUser = createAsyncThunk(
       );
       
       // Clear localStorage on logout
-      localStorage.removeItem('customerAuth');
+      // localStorage.removeItem('customerAuth');
       
-      return null;
+      return { success: true };
     } catch (error) {
+      console.error("Logout Error:", error.response?.data || error.message);
       return rejectWithValue(error.response?.data || "Something went wrong");
     }
   }
 );
 
-
-// Restaurant Login
+// Login Restaurant
 export const loginRestaurant = createAsyncThunk(
   "restaurantAuth/loginRestaurant",
   async (credentials, { rejectWithValue }) => {
@@ -117,10 +116,10 @@ export const loginRestaurant = createAsyncThunk(
       );
       
       // Store in localStorage as backup
-      localStorage.setItem('restaurantAuth', JSON.stringify({
-        isRestaurantAuthenticated: true,
-        restaurant: response.data.restaurant
-      }));
+      // localStorage.setItem('restaurantAuth', JSON.stringify({
+      //   isRestaurantAuthenticated: true,
+      //   restaurant: response.data.restaurant
+      // }));
       
       return response.data.restaurant;
     } catch (error) {
@@ -139,7 +138,8 @@ export const checkRestaurantAuth = createAsyncThunk(
         "/api/restaurants/check-auth"
       );
       
-      console.log("Check Restaurant Auth Response:", response.data);
+      // Remove console log to reduce noise
+      // console.log("Check Restaurant Auth Response:", response.data);
       
       if (response.data.isRestaurantAuthenticated) {
         return {
@@ -149,25 +149,25 @@ export const checkRestaurantAuth = createAsyncThunk(
       }
       
       // If server says not authenticated, try backup from localStorage
-      const storedAuth = localStorage.getItem('restaurantAuth');
-      if (storedAuth) {
-        const parsedAuth = JSON.parse(storedAuth);
-        if (parsedAuth.isRestaurantAuthenticated) {
-          return parsedAuth;
-        }
-      }
+      // const storedAuth = localStorage.getItem('restaurantAuth');
+      // if (storedAuth) {
+      //   const parsedAuth = JSON.parse(storedAuth);
+      //   if (parsedAuth.isRestaurantAuthenticated) {
+      //     return parsedAuth;
+      //   }
+      // }
       
       return { isRestaurantAuthenticated: false };
     } catch (error) {
       console.error("Check Restaurant Auth Error:", error.response?.data || error.message);
       
       // If server request fails, try backup from localStorage
-      const storedAuth = localStorage.getItem('restaurantAuth');
-      if (storedAuth) {
-        return JSON.parse(storedAuth);
-      }
+      // const storedAuth = localStorage.getItem('restaurantAuth');
+      // if (storedAuth) {
+      //   return JSON.parse(storedAuth);
+      // }
       
-      return rejectWithValue(error.response?.data || "Something went wrong");
+      return { isRestaurantAuthenticated: false };
     }
   }
 );
@@ -182,15 +182,15 @@ export const logoutRestaurant = createAsyncThunk(
       );
       
       // Clear localStorage on logout
-      localStorage.removeItem('restaurantAuth');
+      // localStorage.removeItem('restaurantAuth');
       
-      return null;
+      return { success: true };
     } catch (error) {
+      console.error("Logout Error:", error.response?.data || error.message);
       return rejectWithValue(error.response?.data || "Something went wrong");
     }
   }
 );
-
 
 const authSlice = createSlice({
   name: "auth",
@@ -206,17 +206,17 @@ const authSlice = createSlice({
   extraReducers: (builder) => {
     builder
       // Customer Login
-      .addCase(loginUser.pending, (state) => {
+      .addCase(loginCustomer.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(loginUser.fulfilled, (state, action) => {
+      .addCase(loginCustomer.fulfilled, (state, action) => {
         state.loading = false;
         state.isCustomerAuthenticated = true;
         state.customer = action.payload;
         state.error = null;
       })
-      .addCase(loginUser.rejected, (state, action) => {
+      .addCase(loginCustomer.rejected, (state, action) => {
         state.loading = false;
         state.isCustomerAuthenticated = false;
         state.customer = null;
@@ -240,7 +240,7 @@ const authSlice = createSlice({
       })
       
       // Customer Logout
-      .addCase(logoutUser.fulfilled, (state) => {
+      .addCase(logoutCustomer.fulfilled, (state) => {
         state.isCustomerAuthenticated = false;
         state.customer = null;
       })
@@ -285,7 +285,7 @@ const authSlice = createSlice({
         state.isRestaurantAuthenticated = false;
         state.restaurant = null;
       });
-  },
+  }
 });
 
 export default authSlice.reducer;

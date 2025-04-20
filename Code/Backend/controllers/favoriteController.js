@@ -34,7 +34,7 @@ exports.addFavorite = async (req, res) => {
 exports.removeFavorite = async (req, res) => {
   try {
     const customerId = req.session.userId;
-    const { restaurantId } = req.body;
+    const restaurantId = req.params.restaurantId;
 
     const customer = await Customer.findById(customerId);
     const restaurant = await Restaurant.findById(restaurantId);
@@ -63,11 +63,18 @@ exports.removeFavorite = async (req, res) => {
 
 exports.getFavorites = async (req, res) => {
   try {
-    const customerId = req.session.userId;
+    const customerId = req.params.id;
     const customer = await Customer.findById(customerId);
+    
+    if (!customer) {
+      return res.status(404).json({ message: 'Customer not found' });
+    }
+    
     const favorite = await Favorite.findOne({ customerId }).populate('favorites');
+    
+    // Return empty array if no favorites found
     if (!favorite) {
-      return res.status(404).json({ message: `No favorites found for Customer: ${customer.firstName} ${customer.lastName}` });
+      return res.status(200).json({ favorites: [] });
     }
 
     res.status(200).json({ favorites: favorite.favorites });

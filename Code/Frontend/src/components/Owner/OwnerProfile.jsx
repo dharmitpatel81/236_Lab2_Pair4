@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useParams, useNavigate } from "react-router-dom";
-import { fetchOwner, updateOwner } from "../../redux/slices/owner/ownerSlice";
+import { fetchRestaurant, updateRestaurant } from "../../redux/slices/restaurant/restaurantSlice";
 import "bootstrap/dist/css/bootstrap.min.css";
 import NavbarDark from "../Common/NavbarDark";
 import axios from "axios";
@@ -9,12 +9,12 @@ import { validateEmail, validatePhone } from "../../utils/validation";
 
 axios.defaults.withCredentials = true;
 
-const OwnerEditProfile = () => {
+const RestaurantEditProfile = () => {
     const { id } = useParams();
     const dispatch = useDispatch();
     const navigate = useNavigate();
-    const { owner, loading, error } = useSelector((state) => state.restaurantOwner);
-    const isOwnerAuthenticated = useSelector((state) => state.auth.isOwnerAuthenticated);
+    const { restaurant, loading, error } = useSelector((state) => state.restaurant);
+    const isRestaurantAuthenticated = useSelector((state) => state.auth.isRestaurantAuthenticated);
 
     const [formData, setFormData] = useState({
         first_name: "",
@@ -32,30 +32,30 @@ const OwnerEditProfile = () => {
     });
 
     useEffect(() => {
-        if (!isOwnerAuthenticated) {
-            navigate("/owner/login"); // Redirect to owner login page if not logged in
+        if (!isRestaurantAuthenticated) {
+            navigate("/restaurant/login"); // Redirect to restaurant login page if not logged in
         }
-    }, [isOwnerAuthenticated, navigate]);
+    }, [isRestaurantAuthenticated, navigate]);
 
     useEffect(() => {
         if (id) {
-            dispatch(fetchOwner(id));
+            dispatch(fetchRestaurant(id));
         }
     }, [dispatch, id]);
 
     useEffect(() => {
-        if (owner) {
+        if (restaurant) {
             setFormData({
-                first_name: owner.first_name || "",
-                last_name: owner.last_name || "",
-                email: owner.email || "",
-                phone: owner.phone || "",
-                date_of_birth: owner.date_of_birth ? new Date(owner.date_of_birth).toISOString().split('T')[0] : "",
-                address: owner.address || "",
-                image_url: owner.image_url || null,
+                first_name: restaurant.first_name || "",
+                last_name: restaurant.last_name || "",
+                email: restaurant.email || "",
+                phone: restaurant.phone || "",
+                date_of_birth: restaurant.date_of_birth ? new Date(restaurant.date_of_birth).toISOString().split('T')[0] : "",
+                address: restaurant.address || "",
+                image_url: restaurant.image_url || null,
             });
         }
-    }, [owner]);
+    }, [restaurant]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -118,16 +118,16 @@ const OwnerEditProfile = () => {
         }
         
         if (!id) {
-            alert("Owner ID is missing!");
+            alert("Restaurant ID is missing!");
             return;
         }
         console.log('Submitting the following data:', formData);  // Logging form data
 
-        dispatch(updateOwner({ ownerId: id, ownerData: formData }))
+        dispatch(updateRestaurant({ restaurantId: id, restaurantData: formData }))
             .unwrap()
             .then(() => {
                 alert("Profile updated successfully!");
-                navigate("/owner/home");
+                navigate("/restaurant/home");
             })
             .catch((error) => {
                 alert("Failed to update profile: " + error);
@@ -139,7 +139,7 @@ const OwnerEditProfile = () => {
             <NavbarDark />
             <button className="btn text-dark border-0 d-flex align-items-center mt-3 ms-3 fw-bold" 
                 style={{ backgroundColor: 'transparent' }} 
-                onClick={() => navigate('/owner/home')}>
+                onClick={() => navigate('/restaurant/home')}>
                 <span className="fs-5 me-1">←</span><u>Back</u>
             </button>
             <h3 className="text-center mt-4 mb-4 fw-bold">Edit Profile</h3>
@@ -200,8 +200,8 @@ const OwnerEditProfile = () => {
                         <div>
                         <img 
                             src={
-                                owner && owner.image_url && owner.image_url.startsWith('/') 
-                                ? `http://localhost:3000${owner.image_url}` 
+                                restaurant && restaurant.image_url && restaurant.image_url.startsWith('/') 
+                                ? `http://localhost:3000${restaurant.image_url}` 
                                 : "http://127.0.0.1:3000/uploads/blank.png"
                             } 
                             alt="Profile" 
@@ -221,4 +221,4 @@ const OwnerEditProfile = () => {
     );
 };
 
-export default OwnerEditProfile;
+export default RestaurantEditProfile;

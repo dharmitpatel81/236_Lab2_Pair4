@@ -1,20 +1,22 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import axios from "axios";
-axios.defaults.withCredentials = true;
+import axios from "../../../config/axios";
 
 // Async thunk for placing orders
 export const placeOrder = createAsyncThunk(
   "cart/placeOrder",
-  async (orderData, { rejectWithValue }) => {
+  async ({ restaurantId, orderData }, { rejectWithValue }) => {
     try {
-      const response = await axios.post("/api/orders", orderData, {
-        headers: { "Content-Type": "application/json" },
-        withCredentials: true
-      });
+      const response = await axios.post(
+        `/api/customers/orders/create/${restaurantId}`, 
+        orderData, 
+        {
+          headers: { "Content-Type": "application/json" }
+        }
+      );
       return response.data;
     } catch (error) {
       return rejectWithValue(
-        error.response?.data?.error || "Failed to place order"
+        error.response?.data?.error || error.response?.data?.message || "Failed to place order"
       );
     }
   }
@@ -41,7 +43,7 @@ export const fetchOrderDetails = createAsyncThunk(
   async (orderId, { rejectWithValue }) => {
     try {
       const response = await axios.get(
-        `http://127.0.0.1:3000/api/orders/${orderId}`
+        `/api/customers/orders/single/${orderId}`
       );
       return response.data;
     } catch (error) {
@@ -58,7 +60,7 @@ export const fetchOrdersByCustomer = createAsyncThunk(
   async (customerId, { rejectWithValue }) => {
     try {
       const response = await axios.get(
-        `http://127.0.0.1:3000/api/orders/customer/${customerId}`
+        `/api/customers/orders/${customerId}`
       );
       return response.data;
     } catch (error) {
@@ -76,8 +78,7 @@ export const updateOrderStatus = createAsyncThunk(
         `http://127.0.0.1:3000/api/orders/${orderId}`,
         { status },
         {
-          headers: { "Content-Type": "application/json" },
-          withCredentials: true
+          headers: { "Content-Type": "application/json" }
         }
       );
       return response.data; // Updated order data

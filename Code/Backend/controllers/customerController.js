@@ -2,62 +2,63 @@ const Customer = require('../models/customer');
 const Order = require('../models/order');
 const Restaurant = require('../models/restaurant');
 const Dish = require('../models/dish');
+const { uploadImage } = require('../utils/imageUpload');
 
 const bcrypt = require('bcryptjs');
 
 // Tax rates by state (in percentage)
 const STATE_TAX_RATES = {
-  'AL': 4.0,  // Alabama
-  'AK': 0.0,  // Alaska
-  'AZ': 5.6,  // Arizona
-  'AR': 6.5,  // Arkansas
-  'CA': 7.25, // California
-  'CO': 2.9,  // Colorado
-  'CT': 6.35, // Connecticut
-  'DE': 0.0,  // Delaware
-  'FL': 6.0,  // Florida
-  'GA': 4.0,  // Georgia
-  'HI': 4.0,  // Hawaii
-  'ID': 6.0,  // Idaho
-  'IL': 6.25, // Illinois
-  'IN': 7.0,  // Indiana
-  'IA': 6.0,  // Iowa
-  'KS': 6.5,  // Kansas
-  'KY': 6.0,  // Kentucky
-  'LA': 4.45, // Louisiana
-  'ME': 5.5,  // Maine
-  'MD': 6.0,  // Maryland
-  'MA': 6.25, // Massachusetts
-  'MI': 6.0,  // Michigan
-  'MN': 6.875,// Minnesota
-  'MS': 7.0,  // Mississippi
-  'MO': 4.225,// Missouri
-  'MT': 0.0,  // Montana
-  'NE': 5.5,  // Nebraska
-  'NV': 6.85, // Nevada
-  'NH': 0.0,  // New Hampshire
-  'NJ': 6.625,// New Jersey
-  'NM': 5.125,// New Mexico
-  'NY': 4.0,  // New York
-  'NC': 4.75, // North Carolina
-  'ND': 5.0,  // North Dakota
-  'OH': 5.75, // Ohio
-  'OK': 4.5,  // Oklahoma
-  'OR': 0.0,  // Oregon
-  'PA': 6.0,  // Pennsylvania
-  'RI': 7.0,  // Rhode Island
-  'SC': 6.0,  // South Carolina
-  'SD': 4.5,  // South Dakota
-  'TN': 7.0,  // Tennessee
-  'TX': 6.25, // Texas
-  'UT': 6.1,  // Utah
-  'VT': 6.0,  // Vermont
-  'VA': 5.3,  // Virginia
-  'WA': 6.5,  // Washington
-  'WV': 6.0,  // West Virginia
-  'WI': 5.0,  // Wisconsin
-  'WY': 4.0,  // Wyoming
-  'DC': 6.0   // District of Columbia
+  'Alabama': 4.0,
+  'Alaska': 0.0,
+  'Arizona': 5.6,
+  'Arkansas': 6.5,
+  'California': 7.25,
+  'Colorado': 2.9,
+  'Connecticut': 6.35,
+  'Delaware': 0.0,
+  'Florida': 6.0,
+  'Georgia': 4.0,
+  'Hawaii': 4.0,
+  'Idaho': 6.0,
+  'Illinois': 6.25,
+  'Indiana': 7.0,
+  'Iowa': 6.0,
+  'Kansas': 6.5,
+  'Kentucky': 6.0,
+  'Louisiana': 4.45,
+  'Maine': 5.5,
+  'Maryland': 6.0,
+  'Massachusetts': 6.25,
+  'Michigan': 6.0,
+  'Minnesota': 6.875,
+  'Mississippi': 7.0,
+  'Missouri': 4.225,
+  'Montana': 0.0,
+  'Nebraska': 5.5,
+  'Nevada': 6.85,
+  'New Hampshire': 0.0,
+  'New Jersey': 6.625,
+  'New Mexico': 5.125,
+  'New York': 4.0,
+  'North Carolina': 4.75,
+  'North Dakota': 5.0,
+  'Ohio': 5.75,
+  'Oklahoma': 4.5,
+  'Oregon': 0.0,
+  'Pennsylvania': 6.0,
+  'Rhode Island': 7.0,
+  'South Carolina': 6.0,
+  'South Dakota': 4.5,
+  'Tennessee': 7.0,
+  'Texas': 6.25,
+  'Utah': 6.1,
+  'Vermont': 6.0,
+  'Virginia': 5.3,
+  'Washington': 6.5,
+  'West Virginia': 6.0,
+  'Wisconsin': 5.0,
+  'Wyoming': 4.0,
+  'District of Columbia': 6.0
 };
 
 // Default tax rate if state is not found
@@ -67,8 +68,8 @@ const DEFAULT_TAX_RATE = 5.0;
 const getTaxRate = (state) => {
   if (!state) return DEFAULT_TAX_RATE;
   
-  const stateCode = state.toUpperCase();
-  return STATE_TAX_RATES[stateCode] || DEFAULT_TAX_RATE;
+  // Look up directly without converting to uppercase
+  return STATE_TAX_RATES[state] || DEFAULT_TAX_RATE;
 };
 
 // Generate a unique order number
@@ -98,7 +99,7 @@ const validateEmail = (email) => {
 };
 
 const validatePhone = (phone) => {
-  const phoneRegex = /^\+?[1-9]\d{9,14}$/;
+  const phoneRegex = /^\+?\d{10,15}$/;
   return phoneRegex.test(phone);
 };
 
@@ -107,7 +108,8 @@ const validatePassword = (password) => {
   if (!password || password.length < 6) errors.push('Password must be at least 6 characters long');
   if (!/[A-Z]/.test(password)) errors.push('Password must contain at least one uppercase letter');
   if (!/[a-z]/.test(password)) errors.push('Password must contain at least one lowercase letter');
-  if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) errors.push('Password must contain at least one symbol (!@#$%^&*(),.?":{}|<>)');
+  if (!/[0-9]/.test(password)) errors.push('Password must contain at least one number');
+  if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) errors.push('Password must contain at least one special character (!@#$%^&*(),.?":{}|<>)');
   return errors;
 };
 
@@ -117,7 +119,8 @@ const validateZipCode = (zipCode) => {
 };
 
 const validateName = (name) => {
-  return name && name.length >= 1 && name.length <= 50 && /^[a-zA-Z\s-']+$/.test(name);
+  const nameRegex = /^[A-Za-z\s'-]+$/;
+  return nameRegex.test(name);
 };
 
 const validateAddress = (address) => {
@@ -129,7 +132,7 @@ const validateAddress = (address) => {
 
   const { street, city, state, country, zipCode } = address;
 
-  if (!street || street.length < 5) errors.push('Street address must be at least 5 characters. Example: 123 Main Street');
+  if (!street) errors.push('Street address is required');
   if (!city || city.length < 2) errors.push('City must be at least 2 characters and contain only letters, spaces, or hyphens');
   if (!state || state.length < 2) errors.push('State must be at least 2 characters and contain only letters, spaces, or hyphens');
   if (!country || country.length < 2) errors.push('Country must be at least 2 characters and contain only letters, spaces, or hyphens');
@@ -142,6 +145,35 @@ const validateAddress = (address) => {
 // Controller functions
 exports.register = async (req, res) => {
   try {
+    console.log('Customer registration request received');
+
+    
+    // Handle image upload if present
+    let imageUrl = null;
+    if (req.files && req.files.image) {
+      try {
+        const file = req.files.image;
+        console.log('Processing image upload:', file.name);
+        imageUrl = await uploadImage(file, 'customers');
+        console.log('Image uploaded successfully:', imageUrl);
+      } catch (uploadError) {
+        console.error('Error uploading image:', uploadError);
+        return res.status(500).json({ message: 'Error uploading profile image' });
+      }
+    }
+
+    // Parse addresses if it's a string (from FormData)
+    let addresses = req.body.addresses;
+    if (typeof addresses === 'string') {
+      try {
+        addresses = JSON.parse(addresses);
+        console.log('Parsed addresses:', addresses);
+      } catch (error) {
+        console.error('Error parsing addresses:', error);
+        return res.status(400).json({ message: 'Invalid addresses format' });
+      }
+    }
+
     // Validate all fields
     const validationErrors = [];
 
@@ -151,45 +183,38 @@ exports.register = async (req, res) => {
     validationErrors.push(...validatePassword(req.body.password));
     if (!validatePhone(req.body.phone)) validationErrors.push('Phone number must be 10-15 digits with optional + prefix. Example: +1234567890');
 
-    const addressErrors = validateAddress(req.body.address);
-    validationErrors.push(...addressErrors);
+    // Validate first address
+    if (addresses && addresses.length > 0) {
+      const addressErrors = validateAddress(addresses[0]);
+      validationErrors.push(...addressErrors);
+    } else {
+      validationErrors.push('At least one address is required');
+    }
 
     if (validationErrors.length > 0) {
+      console.error('Validation errors:', validationErrors);
       return res.status(400).json({
         message: 'Validation failed',
         errors: validationErrors
       });
     }
+
     const { 
       firstName, 
       lastName, 
       email, 
       password, 
       phone, 
-      dateOfBirth,
-      imageUrl,
-      address: {
-        label,
-        street,
-        city,
-        state,
-        country,
-        zipCode
-      } = {}
+      dateOfBirth
     } = req.body;
 
-    // Validate address fields are provided
-    if (!street || !city || !state || !country || !zipCode) {
-      return res.status(400).json({ message: 'All address fields are required' });
-    }
-    
     // Check if customer already exists
     const existingCustomer = await Customer.findOne({ email });
     if (existingCustomer) {
       return res.status(400).json({ message: 'Customer already exists' });
     }
 
-    // Create new customer - password will be hashed in pre-save hook
+    // Create new customer
     const customer = new Customer({
       firstName,
       lastName,
@@ -197,33 +222,28 @@ exports.register = async (req, res) => {
       password,
       phone,
       dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : undefined,
-      imageUrl: imageUrl || null,
-      addresses: [{
-        label: label || 'Home',
-        street,
-        city,
-        state,
-        country,
-        zipCode,
-        isPrimary: true
-      }],
-      favorites: []
+      imageUrl: imageUrl,
+      addresses: addresses.map((addr, index) => ({
+        ...addr,
+        isPrimary: index === 0  // First address is primary
+      }))
     });
 
     await customer.save();
 
     res.status(201).json({
-        message: 'Customer registered successfully',
-        customer: {
-          id: customer._id,
-          firstName: customer.firstName,
-          lastName: customer.lastName,
-          email: customer.email,
-          phone: customer.phone,
-          imageUrl: customer.imageUrl
-        }
+      message: 'Customer registered successfully',
+      customer: {
+        id: customer._id,
+        firstName: customer.firstName,
+        lastName: customer.lastName,
+        email: customer.email,
+        phone: customer.phone,
+        imageUrl: customer.imageUrl
+      }
     });
   } catch (error) {
+    console.error('Registration error:', error);
     res.status(500).json({ message: 'Error registering customer', error: error.message });
   }
 };
@@ -271,10 +291,10 @@ exports.login = async (req, res) => {
 
 exports.getProfile = async (req, res) => {
   try {
-    const customerId = req.session.userId;
-    console.log('Fetching profile for customer ID:', customerId);
+    // Always use ID from params
+    const customerId = req.params.id;
     
-    const customer = await Customer.findById(customerId).select('-password');
+    const customer = await Customer.findById(customerId);
     if (!customer) {
       return res.status(404).json({ message: 'Customer not found' });
     }
@@ -287,8 +307,9 @@ exports.getProfile = async (req, res) => {
 
 exports.updateProfile = async (req, res) => {
   try {
-    const customerId = req.session.userId;
-    const { firstName, lastName, email, phone, dateOfBirth, imageUrl } = req.body;
+    // Always use ID from params
+    const customerId = req.params.id;
+    const { firstName, lastName, email, phone, dateOfBirth, imageUrl, currentPassword, newPassword } = req.body;
 
     // Validate email format if provided
     if (email && !validateEmail(email)) {
@@ -306,10 +327,34 @@ exports.updateProfile = async (req, res) => {
       return res.status(404).json({ message: 'Customer not found' });
     }
 
+    // Handle password change if requested
+    if (currentPassword && newPassword) {
+      console.log("Password change requested");
+      
+      // Validate new password
+      const passwordErrors = validatePassword(newPassword);
+      if (passwordErrors.length > 0) {
+        return res.status(400).json({ 
+          message: 'Invalid new password', 
+          errors: passwordErrors 
+        });
+      }
+      
+      // Verify current password
+      const isPasswordValid = await customer.comparePassword(currentPassword);
+      if (!isPasswordValid) {
+        return res.status(401).json({ message: 'Current password is incorrect' });
+      }
+      
+      // Set new password
+      customer.password = newPassword;
+      console.log("Password change verified and will be updated");
+    }
+
     // Check if email is already in use by another customer
     if (email && email !== customer.email) {
       const existingCustomer = await Customer.findOne({ email });
-      if (existingCustomer) {
+      if (existingCustomer && existingCustomer._id.toString() !== customerId) {
         return res.status(400).json({ message: 'Email already in use by another customer' });
       }
     }
@@ -320,22 +365,28 @@ exports.updateProfile = async (req, res) => {
     if (email) customer.email = email;
     if (phone) customer.phone = phone;
     if (dateOfBirth) customer.dateOfBirth = new Date(dateOfBirth);
-    if (imageUrl) customer.imageUrl = imageUrl;
+    
+    // Handle imageUrl explicitly - allow setting to null to remove profile image
+    if (imageUrl !== undefined) {
+      customer.imageUrl = imageUrl;
+    }
 
     await customer.save();
 
+    // Return updated customer data
+    const updatedCustomer = await Customer.findById(customerId).select('-password');
+
+    console.log("Profile updated successfully:", {
+      id: updatedCustomer._id,
+      imageUrl: updatedCustomer.imageUrl
+    });
+
     res.json({
       message: 'Profile updated successfully',
-      customer: {
-        id: customer._id,
-        firstName: customer.firstName,
-        lastName: customer.lastName,
-        email: customer.email,
-        phone: customer.phone,
-        imageUrl: customer.imageUrl
-      }
+      customer: updatedCustomer
     });
   } catch (error) {
+    console.error("Error in updateProfile:", error);
     res.status(500).json({ message: 'Error updating profile', error: error.message });
   }
 };
@@ -520,7 +571,7 @@ exports.logout = (req, res) => {
 // Delete customer account
 exports.deleteAccount = async (req, res) => {
   try {
-    const customerId = req.session.userId;
+    const customerId = req.params.id;
 
     // Find and delete the customer
     const deletedCustomer = await Customer.findByIdAndDelete(customerId);
@@ -594,14 +645,14 @@ exports.createOrder = async (req, res) => {
 
     // Get customer details
     const customer = await Customer.findById(customerId)
-      .select('firstName lastName email phone');
+      .select('firstName lastName email phone addresses');
     if (!customer) {
       return res.status(404).json({ message: 'Customer not found' });
     }
 
     // Get restaurant details
     const restaurantDetails = await Restaurant.findById(restaurantId)
-      .select('name address phone email');
+      .select('name address phone email imageUrl');
     if (!restaurantDetails) {
       return res.status(404).json({ message: 'Restaurant not found' });
     }
@@ -615,12 +666,21 @@ exports.createOrder = async (req, res) => {
     const itemsWithDetails = validItems.map(item => {
       const dish = dishes.find(d => d._id.toString() === item.dishId.toString());
       
+      if (!dish) {
+        throw new Error(`Dish not found with ID: ${item.dishId}`);
+      }
+      
+      // Ensure dish has a sizes array
+      if (!dish.sizes || !Array.isArray(dish.sizes) || dish.sizes.length === 0) {
+        throw new Error(`No size options available for dish: ${dish.name}`);
+      }
+      
       // Find the selected size from the sizes array
       if (!item.sizeId) {
         throw new Error(`Size ID is required for dish: ${dish.name}`);
       }
       
-      const selectedSize = dish.sizes.find(s => s._id.toString() === item.sizeId.toString());
+      const selectedSize = dish.sizes.find(s => s._id && s._id.toString() === item.sizeId.toString());
       if (!selectedSize) {
         throw new Error(`Invalid size selected for dish: ${dish.name}`);
       }
@@ -645,8 +705,10 @@ exports.createOrder = async (req, res) => {
     let taxState;
     if (isDelivery && addressId) {
       // For delivery, use the customer's delivery address state
-      const customer = await Customer.findById(customerId);
       const selectedAddress = customer.addresses.find(addr => addr._id.toString() === addressId);
+      if (!selectedAddress) {
+        return res.status(400).json({ message: 'Invalid address selected' });
+      }
       taxState = selectedAddress ? selectedAddress.state : null;
     } else {
       // For pickup, use the restaurant's state
@@ -657,8 +719,18 @@ exports.createOrder = async (req, res) => {
     const taxRate = getTaxRate(taxState);
     const taxAmount = parseFloat(((subtotal * taxRate) / 100).toFixed(2));
     
-    // Calculate total amount
-    const totalAmount = parseFloat((subtotal + taxAmount).toFixed(2));
+    // Calculate delivery fee if applicable
+    let deliveryFee = null;
+    if (isDelivery) {
+      // Apply $4.49 delivery fee if subtotal is less than $20
+      deliveryFee = subtotal >= 20 ? 0 : 4.49;
+    }
+    
+    // Calculate total amount including delivery fee if present
+    const totalBeforeFee = parseFloat((subtotal + taxAmount).toFixed(2));
+    const totalAmount = deliveryFee !== null ? 
+      parseFloat((totalBeforeFee + deliveryFee).toFixed(2)) : 
+      totalBeforeFee;
 
     // If delivery, validate the given address by customer
     let deliveryAddress;
@@ -667,7 +739,6 @@ exports.createOrder = async (req, res) => {
         return res.status(400).json({ message: 'An address is required for delivery orders' });
       }
 
-      const customer = await Customer.findById(customerId);
       const selectedAddress = customer.addresses.find(addr => addr._id.toString() === addressId);
 
       if (!selectedAddress) {
@@ -699,6 +770,7 @@ exports.createOrder = async (req, res) => {
       restaurantId: restaurantId,
       restaurantDetails: {
         name: restaurantDetails.name,
+        imageUrl: restaurantDetails.imageUrl || null,
         address: {
           street: restaurantDetails.address.street || '',
           city: restaurantDetails.address.city || '',
@@ -714,6 +786,7 @@ exports.createOrder = async (req, res) => {
       subtotal,
       taxRate,
       taxAmount,
+      deliveryFee,
       totalAmount,
       isDelivery,
       deliveryAddress,
@@ -734,7 +807,7 @@ exports.createOrder = async (req, res) => {
 // Get all orders for a customer
 exports.getCustomerOrders = async (req, res) => {
   try {
-    const customerId = req.session.userId;
+    const customerId = req.params.customerId;
     
     // Get customer details to display name in message
     const customer = await Customer.findById(customerId).select('firstName lastName');
@@ -744,20 +817,6 @@ exports.getCustomerOrders = async (req, res) => {
     
     // Get only the necessary fields for the orders list
     const orders = await Order.find({ customerId: customerId })
-      .select({
-        orderNumber: 1,
-        'restaurantDetails.name': 1,
-        items: { $slice: 3 }, // Limit to first 3 items to reduce payload size
-        status: 1,
-        isDelivery: 1,
-        totalAmount: 1,
-        createdAt: 1,
-        updatedAt: 1
-      })
-      .populate({
-        path: 'items.dishId',
-        select: 'name'
-      })
       .sort({ createdAt: -1 });
 
     // Check if customer has any orders
@@ -775,9 +834,24 @@ exports.getCustomerOrders = async (req, res) => {
       id: order._id,
       orderNumber: order.orderNumber,
       restaurantName: order.restaurantDetails.name,
+      restaurantImage: order.restaurantDetails.imageUrl || null,
+      restaurantAddress: order.restaurantDetails.address ? {
+        street: order.restaurantDetails.address.street || '',
+        city: order.restaurantDetails.address.city || '',
+        state: order.restaurantDetails.address.state || '',
+        zipCode: order.restaurantDetails.address.zipCode || ''
+      } : null,
+      deliveryAddress: order.deliveryAddress ? {
+        street: order.deliveryAddress.street || '',
+        city: order.deliveryAddress.city || '',
+        state: order.deliveryAddress.state || '',
+        zipCode: order.deliveryAddress.zipCode || '',
+        label: order.deliveryAddress.label || ''
+      } : null,
       items: order.items.map(item => ({
         name: item.name,
-        quantity: item.quantity
+        quantity: item.quantity,
+        size: item.size || null
       })),
       totalItems: order.items.length,
       status: order.status,
@@ -799,12 +873,9 @@ exports.getCustomerOrders = async (req, res) => {
 // Get order details for a customer
 exports.getOrderDetails = async (req, res) => {
   try {
-    const { orderId } = req.params;
-    const customerId = req.session.userId;
-
+    const orderId = req.params.orderId;
     const order = await Order.findOne({
       _id: orderId,
-      customerId: customerId
     });
 
     if (!order) {
@@ -822,7 +893,6 @@ exports.cancelOrder = async (req, res) => {
   try {
     const { orderId } = req.params;
     const customerId = req.session.userId;
-
     const order = await Order.findOne({
       _id: orderId,
       customerId: customerId
@@ -832,8 +902,8 @@ exports.cancelOrder = async (req, res) => {
       return res.status(404).json({ message: 'Order not found' });
     }
 
-    // Check if order is in 'received' status
-    if (order.status !== 'received') {
+    // Check if order is in 'received' or 'new' status to be eligible to cancel
+    if (order.status !== 'received' && order.status !== 'new') {
       return res.status(400).json({ 
         message: 'Order has been processed already and cannot be cancelled. Please contact the restaurant for support.'
       });

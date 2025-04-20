@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
-import { loginUser, checkCustomerAuth } from "../../redux/slices/auth/authSlice"; 
 import { useLocation } from "react-router-dom";
+import { loginCustomer, checkCustomerAuth } from "../../redux/slices/auth/authSlice"; 
 import "bootstrap/dist/css/bootstrap.min.css";
 import NavbarDark from "../Common/NavbarDark";
 
@@ -23,7 +23,7 @@ const CustomerLogin = () => {
     useEffect(() => {
         dispatch(checkCustomerAuth()).then(result => {
             if (result.payload?.isCustomerAuthenticated) {
-                navigate("/customer/home");
+                navigate("/restaurants");
             }
         });
     }, [dispatch, navigate]);
@@ -31,7 +31,7 @@ const CustomerLogin = () => {
     // Redirect if authenticated status changes
     useEffect(() => {
         if (isCustomerAuthenticated) {
-            navigate("/customer/home");
+            navigate("/restaurants");
         }
     }, [isCustomerAuthenticated, navigate]);
 
@@ -50,13 +50,13 @@ const CustomerLogin = () => {
         setLoginAttempted(true);
         
         try {
-            const result = await dispatch(loginUser(credentials));
+            const result = await dispatch(loginCustomer(credentials));
             
             if (result.meta.requestStatus === "fulfilled") {
                 console.log("Login Successful!", result.payload); 
                 // Explicitly check auth status again after login
                 await dispatch(checkCustomerAuth());
-                navigate("/customer/home"); 
+                navigate("/restaurants"); 
             }
         } catch (err) {
             console.error("Login Failed!", err);
@@ -72,7 +72,7 @@ const CustomerLogin = () => {
                 style={{ backgroundColor: 'transparent' }}
                 onClick={() => navigate('/')}
             >
-                <span className="fs-5 me-1">←</span><u>Back to Home</u>
+                <span className="fs-5 me-1">←</span><u>Back</u>
             </button>
             <h3 className="text-center mt-4 mb-4 fw-bold">Log In to Your Account</h3>
 

@@ -66,7 +66,7 @@ const RestaurantLogin = () => {
                 style={{ backgroundColor: 'transparent' }}
                 onClick={() => navigate('/')}
             >
-                <span className="fs-5 me-1">←</span><u>Back to Home</u>
+                <span className="fs-5 me-1">←</span><u>Back</u>
             </button>
             <h3 className="text-center mt-4 mb-4 fw-bold">Log In to Your Restaurant Account</h3>
 

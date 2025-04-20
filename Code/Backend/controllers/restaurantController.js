@@ -195,7 +195,7 @@ exports.getRestaurantProfile = async (req, res) => {
     } = restaurant;
 
     const reorderedRestaurant = {
-      _id,
+      id: _id,
       name,
       email,
       description,
@@ -363,7 +363,7 @@ exports.updateRestaurantProfile = async (req, res) => {
     } = restaurant;
 
     const reorderedRestaurant = {
-      _id,
+      id: _id,
       name,
       email,
       description,
@@ -474,7 +474,7 @@ exports.getAllRestaurants = async (req, res) => {
       offersDelivery, rating, ratingCount, cuisine, priceRange, 
       imageUrl, createdAt, updatedAt, address, operatingHours 
     }) => ({
-      _id, 
+      id: _id, 
       name, 
       email, 
       description, 
@@ -518,7 +518,7 @@ exports.getRestaurantById = async (req, res) => {
     } = restaurant;
 
     const reorderedRestaurant = {
-      _id,
+      id: _id,
       name,
       email,
       description,
@@ -535,7 +535,11 @@ exports.getRestaurantById = async (req, res) => {
       updatedAt,
       address,
       operatingHours,
-      dishes
+      dishes: dishes.map(dish => ({
+        ...dish.toObject(),
+        id: dish._id,
+        _id: undefined
+      }))
     };
 
     res.json(reorderedRestaurant);

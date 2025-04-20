@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { checkCustomerAuth, checkRestaurantAuth } from './redux/slices/auth/authSlice';
 import { useDispatch, useSelector } from 'react-redux';
 
 import LandingPage from './components/Landing/Landing';
+import Footer from './components/Common/Footer';
+import AboutUs from './components/Common/AboutUs';
 
 // Customer
 import CustomerSignup from './components/Auth/CustomerSignup';
@@ -15,13 +17,12 @@ import Cart from './components/Customer/Cart';
 import CustomerOrders from './components/Customer/CustomerOrders';
 import CustomerFavorites from './components/Customer/CustomerFavorites';
 
-
 // Restaurant
 import RestaurantSignup from './components/Auth/RestaurantSignup';
 import RestaurantLogin from './components/Auth/RestaurantLogin';
-import RestaurantList from './components/Owner/OwnerRestaurantList';
-import RestaurantOrders from './components/Owner/RestaurantOrders';
-import RestaurantEditProfile from './components/Owner/OwnerProfile';
+import RestaurantDashboard from './components/Restaurant/RestaurantDashboard';
+import RestaurantOrders from './components/Restaurant/RestaurantOrders';
+import RestaurantProfile from './components/Restaurant/RestaurantProfile';
 
 import './App.css';
 
@@ -77,6 +78,66 @@ const RestaurantProtectedRoute = ({ children }) => {
   return isRestaurantAuthenticated ? children : <Navigate to="/restaurant/login" state={{ signedOut: true }} />;
 };
 
+// Wrapper component to handle conditional footer rendering
+const AppContent = () => {
+  const location = useLocation();
+  const showFooter = location.pathname !== '/';
+
+  return (
+    <div className="d-flex flex-column min-vh-100">
+      <div className="flex-grow-1">
+        <Routes>
+          {/* Landing */}
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/about" element={<AboutUs />} />
+
+          {/* Customer */}
+          <Route path="/customer/signup" element={<CustomerSignup />} />
+          <Route path="/customer/login" element={<CustomerLogin />} />
+          <Route path="/restaurants" element={<CustomerHome />} />
+          <Route path="/restaurant/:id" element={<RestaurantDetail />} />
+          <Route path="/cart" element={<Cart />} />
+          <Route path="/customer/profile/:id" element={
+            <CustomerProtectedRoute>
+              <CustomerEditProfile />
+            </CustomerProtectedRoute>
+          } />
+          <Route path="/customer/orders" element={
+            <CustomerProtectedRoute>
+              <CustomerOrders />
+            </CustomerProtectedRoute>
+          } />
+          <Route path="/customer/favorites" element={
+            <CustomerProtectedRoute>
+              <CustomerFavorites />
+            </CustomerProtectedRoute>
+          } />
+
+          {/* Restaurant */}
+          <Route path="/restaurant/signup" element={<RestaurantSignup />} />
+          <Route path="/restaurant/login" element={<RestaurantLogin />} />
+          <Route path="/restaurant/home" element={
+            <RestaurantProtectedRoute>
+              <RestaurantDashboard />
+            </RestaurantProtectedRoute>
+          } />
+          <Route path="/restaurant/orders" element={
+            <RestaurantProtectedRoute>
+              <RestaurantOrders />
+            </RestaurantProtectedRoute>
+          } />
+          <Route path="/restaurant/profile" element={
+            <RestaurantProtectedRoute>
+              <RestaurantProfile />
+            </RestaurantProtectedRoute>
+          } />
+        </Routes>
+      </div>
+      {showFooter && <Footer />}
+    </div>
+  );
+};
+
 function App() {
   const dispatch = useDispatch();
   const [authChecked, setAuthChecked] = useState(false);
@@ -107,46 +168,7 @@ function App() {
 
   return (
     <Router>
-      <Routes>
-        {/* Landing */}
-        <Route path="/" element={<LandingPage />} />
-
-        {/* Customer */}
-        <Route path="/customer/signup" element={<CustomerSignup />} />
-        <Route path="/customer/login" element={<CustomerLogin />} />
-        <Route path="/customer/profile/:id" element={<CustomerEditProfile />} />
-        <Route path="/customer/home" element={
-          <CustomerProtectedRoute>
-            <CustomerHome />
-          </CustomerProtectedRoute>
-        } />
-        <Route path="/restaurant/:id" element={
-          <CustomerProtectedRoute>
-            <RestaurantDetail />
-          </CustomerProtectedRoute>
-        } />
-        <Route path="/cart" element={<Cart />} />
-        <Route path="/customer/orders" element={<CustomerOrders />} />
-        <Route path="/customer/favorites" element={<CustomerFavorites />} />
-
-
-        {/* Restaurant */}
-        <Route path="/restaurant/signup" element={<RestaurantSignup />} />
-        <Route path="/restaurant/login" element={<RestaurantLogin />} />
-        <Route path="/restaurant/home" element={
-          <RestaurantProtectedRoute>
-            <RestaurantList />
-          </RestaurantProtectedRoute>
-        } />
-        <Route path="/restaurant/restaurants/:restaurantId/orders" element={
-          <RestaurantProtectedRoute>
-            <RestaurantOrders />
-          </RestaurantProtectedRoute>
-        } />
-        <Route path="/restaurant/profile/:id" element={<RestaurantEditProfile />} />
-
-
-      </Routes>
+      <AppContent />
     </Router>
   );
 }
