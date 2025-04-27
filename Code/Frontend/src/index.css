@@ -73,7 +73,6 @@ button:focus-visible {
 [class*='card'] {
   transform: none !important;
   transition: none !important;
-  box-shadow: none !important;
 }
 
 .card:hover,
@@ -81,7 +80,6 @@ button:focus-visible {
 [class*='card']:hover {
   transform: none !important;
   transition: none !important;
-  box-shadow: none !important;
 }
 
 /* Also disable any hover scale animations */
@@ -89,4 +87,64 @@ button:focus-visible {
 .hover-scale:hover {
   transform: none !important;
   transition: none !important;
+}
+
+/* Prevent modal from shrinking too much on smaller screens */
+@media (max-width: 991px) {
+  .custom-modal-width {
+    width: 90vw !important;
+    max-width: 650px !important;
+  }
+}
+
+/* Prevent modal from shrinking too much on smaller screens */
+@media (max-width: 576px) {
+  .custom-modal-width .d-flex.flex-wrap {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+/* Animation for dropdown inner content */
+.dropdown-animate {
+  animation: slideDown 0.2s ease-out;
+}
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Order card hover animation */
+.order-hover {
+  cursor: pointer;
+  position: relative;
+  overflow: visible;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.order-hover:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+}
+
+/* Rotate icon when active */
+.icon-rotatable {
+  transform: rotate(0deg);
+  transition: transform 0.4s ease;
+}
+.icon-rotate {
+  transform: rotate(30deg);
+}
+
+@media (max-width: 1200px) {
+  .metric-card {
+    width: 75%;
+    margin: 0 auto;
+  }
+  /* reduce title and text size on smaller screens */
+  .metric-card .card-title {
+    font-size: clamp(0.75rem, 2vw, 1rem) !important;
+  }
+  .metric-card .card-text {
+    font-size: clamp(1.25rem, 3vw, 2rem) !important;
+  }
 }

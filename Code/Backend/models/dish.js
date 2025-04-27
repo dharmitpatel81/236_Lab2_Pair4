@@ -28,9 +28,14 @@ const dishSchema = new mongoose.Schema({
     }
   ],
   category: {
-    type: String,
+    type: [String],
     required: true,
-    enum: ['appetizer', 'salad', 'main_course', 'dessert', 'beverage', 'side']
+    validate: {
+      validator: function(v) {
+        return v.length > 0;
+      },
+      message: 'At least one category must be selected'
+    }
   },
   ingredients: {
     type: [String],

@@ -9,6 +9,10 @@ import { Link } from "react-router-dom";
 import axios from "../../config/axios"; // Use the configured axios instance
 import Modal from 'react-bootstrap/Modal';
 import Button from 'react-bootstrap/Button';
+import Dropdown from 'react-bootstrap/Dropdown';
+import Form from 'react-bootstrap/Form';
+import OverlayTrigger from 'react-bootstrap/OverlayTrigger';
+import Popover from 'react-bootstrap/Popover';
 
 const DEFAULT_IMAGE_PLACEHOLDER = "https://res.cloudinary.com/dvylvq84d/image/upload/v1744151036/ImagePlaceholder_gg1xob.png";
 
@@ -65,7 +69,15 @@ const CustomerOrders = () => {
     const [sortOption, setSortOption] = useState("latest");
     const [cancellingOrder, setCancellingOrder] = useState(false);
     const [cancelError, setCancelError] = useState(null);
-    
+
+    // Filter state for Type and Status
+    const [filterTypes, setFilterTypes] = useState([]);
+    const [filterStatuses, setFilterStatuses] = useState([]);
+    const isFiltered = filterTypes.length > 0 || filterStatuses.length > 0;
+    const toggleFilterType = type => setFilterTypes(prev => prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]);
+    const toggleFilterStatus = status => setFilterStatuses(prev => prev.includes(status) ? prev.filter(s => s !== status) : [...prev, status]);
+    const clearFilters = () => { setFilterTypes([]); setFilterStatuses([]); };
+
     // Ref for dropdown element
     const dropdownRef = useRef(null);
 
@@ -94,11 +106,11 @@ const CustomerOrders = () => {
     }, [customerOrders]); // Re-initialize when orders change
 
     // // For debugging
-    // useEffect(() => {
-    //     if (customerOrders) {
-    //         console.log("Customer Orders:", customerOrders);
-    //     }
-    // }, [customerOrders]);
+    useEffect(() => {
+        if (customerOrders) {
+            console.log("Customer Orders:", customerOrders);
+        }
+    }, [customerOrders]);
 
     const handleViewDetails = (orderId) => {
         setSelectedOrderId(orderId);
@@ -150,6 +162,14 @@ const CustomerOrders = () => {
 
     // Get the sorted orders
     const sortedOrders = getSortedOrders();
+
+    // Orders after applying Type/Status filters
+    const displayedOrders = sortedOrders.filter(order => {
+      const type = order.deliveryType.toLowerCase();
+      const status = order.status.toLowerCase();
+      return (filterTypes.length === 0 || filterTypes.includes(type))
+          && (filterStatuses.length === 0 || filterStatuses.includes(status));
+    });
 
     // Function to check if order can be cancelled
     const canCancelOrder = (status) => {
@@ -223,52 +243,52 @@ const CustomerOrders = () => {
             <span className="fs-5 me-1">←</span><u>Back to Restaurants</u>
         </button>
         <div className="container mt-4">
-            <div className="d-flex justify-content-between align-items-center mb-4">
-                <h2 className="fw-bold ms-0 px-0 mb-0">Your Orders</h2>
+            <div className="d-flex justify-content-start align-items-center mb-4 flex-wrap">
+                <h2 className="fw-bold ms-0 px-0 mb-0 me-4">Your Orders</h2>
 
                 {customerOrders && customerOrders.orders && customerOrders.orders.length > 0 && (
-                    <div className="dropdown">
-                        <button 
-                            className="btn btn-outline-dark rounded-pill dropdown-toggle py-1 px-3" 
-                            type="button"
-                            ref={dropdownRef}
-                            data-bs-toggle="dropdown"
-                            aria-expanded="false"
-                        >
-                            Sort: {sortOption === "latest" ? "By Latest" : "By Oldest"}
-                        </button>
-                        <ul 
-                            className="dropdown-menu shadow-sm rounded-3"
-                            style={{ 
-                                minWidth: "150px", 
-                                fontSize: "0.9rem",
-                                transition: "transform 0.2s ease-out, opacity 0.2s ease-out"
-                            }}
-                        >
-                            <li>
-                                <button 
-                                    className={`dropdown-item rounded-3 ${sortOption === "latest" ? "fw-bold text-dark" : ""}`}
-                                    onClick={() => setSortOption("latest")}
-                                >
-                                    By Latest
-                                </button>
-                            </li>
-                            <li>
-                                <button 
-                                    className={`dropdown-item rounded-3 ${sortOption === "oldest" ? "fw-bold text-dark" : ""}`}
-                                    onClick={() => setSortOption("oldest")}
-                                >
-                                    By Oldest
-                                </button>
-                            </li>
-                        </ul>
-                    </div>
+                    <>
+                    {/* Sort By dropdown */}
+                    <Dropdown className="me-3">
+                        <Dropdown.Toggle variant="bg-white rounded-pill py-1 px-3" id="sort-by-dropdown" style={{border:'1px solid #c0c0c0'}}>
+                            Sort: {sortOption === 'latest' ? 'By Latest' : 'By Oldest'}
+                        </Dropdown.Toggle>
+                        <Dropdown.Menu>
+                            <div className="dropdown-animate">
+                                <Dropdown.Item onClick={() => setSortOption('latest')} className={sortOption==='latest'?'fw-bold text-dark':''}>By Latest</Dropdown.Item>
+                                <Dropdown.Item onClick={() => setSortOption('oldest')} className={sortOption==='oldest'?'fw-bold text-dark':''}>By Oldest</Dropdown.Item>
+                            </div>
+                        </Dropdown.Menu>
+                    </Dropdown>
+                    {/* Filter By Type */}
+                    <Dropdown className="me-3">
+                        <Dropdown.Toggle variant="bg-white rounded-pill py-1 px-3" id="filter-type-dropdown" style={{border:'1px solid #c0c0c0'}}>Filter By Type</Dropdown.Toggle>
+                        <Dropdown.Menu className="px-3">
+                            <div className="dropdown-animate">
+                                <Form.Check inline type="checkbox" id="type-pickup" label="Pickup" checked={filterTypes.includes('pickup')} onChange={()=>toggleFilterType('pickup')} className="my-1 text-dark"/>
+                                <Form.Check inline type="checkbox" id="type-delivery" label="Delivery" checked={filterTypes.includes('delivery')} onChange={()=>toggleFilterType('delivery')} className="my-1 text-dark"/>
+                            </div>
+                        </Dropdown.Menu>
+                    </Dropdown>
+                    {/* Filter By Status */}
+                    <Dropdown className="me-3">
+                        <Dropdown.Toggle variant="bg-white rounded-pill py-1 px-3" id="filter-status-dropdown" style={{border:'1px solid #c0c0c0'}}>Filter By Status</Dropdown.Toggle>
+                        <Dropdown.Menu className="px-3" style={{minWidth:'200px'}}>
+                            <div className="dropdown-animate">
+                                {['new','received','preparing','pickup_ready','picked_up','on_the_way','delivered','cancelled'].map(st => (
+                                    <Form.Check key={st} inline type="checkbox" id={`status-${st}`} label={st[0].toUpperCase()+st.slice(1).replaceAll('_',' ')} checked={filterStatuses.includes(st)} onChange={()=>toggleFilterStatus(st)} className="my-1 text-dark"/>
+                                ))}
+                            </div>
+                        </Dropdown.Menu>
+                    </Dropdown>
+                    {isFiltered && <span className="text-success text-decoration-underline" style={{cursor:'pointer'}} onClick={clearFilters}>Clear all</span>}
+                    </>
                 )}
             </div>
             
             {loadingCustomerOrders ? (
                 <div className="text-center py-5">
-                    <div className="spinner-border" role="status">
+                    <div className="spinner-border text-success me-2" role="status">
                         <span className="visually-hidden">Loading...</span>
                     </div>
                     <p className="mt-2">Loading your orders...</p>
@@ -280,107 +300,120 @@ const CustomerOrders = () => {
                 </div>
             ) : (
             <div className="orders-list">
-                    {!customerOrders || !sortedOrders.length ? (
-                        <div className="text-center py-5">
-                            <p className="text-muted">You haven't placed any orders yet. <Link to="/restaurants" className="text-dark">Explore Restaurants</Link>.</p>
+                    {!customerOrders || !displayedOrders.length ? (
+                        <div className="alert alert-light">
+                            {displayedOrders.length === 0 ? (
+                                <p className="text-muted my-0">No orders match your filter selection. <span className="text-decoration-underline text-muted" style={{cursor:'pointer'}} onClick={clearFilters}>Clear filters</span></p>
+                            ) : (
+                                <p className="text-muted my-0">You haven't placed any orders yet. <Link to="/restaurants" className="text-dark">Explore Restaurants</Link>.</p>
+                            )}
                         </div>
                 ) : (
-                    <div className="row">
-                            {sortedOrders.map((order) => (
+                    <div className="row align-items-stretch">
+                            {displayedOrders.map((order) => (
                                 <div key={order.id} className="col-md-6 mb-4">
-                                    <div 
-                                        className="card rounded-4 h-100 pb-2" 
-                                        onClick={() => handleViewDetails(order.id)}
-                                        style={{ 
-                                            cursor: 'pointer', 
-                                            transition: 'transform 0.2s, box-shadow 0.2s',
-                                            overflow: 'hidden'
-                                        }}
-                                        onMouseOver={(e) => {
-                                            e.currentTarget.style.transform = 'translateY(-5px)';
-                                            e.currentTarget.style.boxShadow = '0 10px 20px rgba(0,0,0,0.1)';
-                                        }}
-                                        onMouseOut={(e) => {
-                                            e.currentTarget.style.transform = 'translateY(0)';
-                                            e.currentTarget.style.boxShadow = '';
-                                        }}
-                                    >
-                                        <div className="card-header mb-0 bg-white border-bottom-0 py-0 pt-2 px-3">
-                                            <div className="d-flex flex-wrap justify-content-between align-items-center">
-                                                <h5 className="card-title fw-bold mb-0 me-auto">#{order.orderNumber}</h5>
-                                                <div>
-                                                    <span className="badge text-dark rounded-2 px-2 py-1 me-1" style={{border: '1px solid lightgray'}}>
-                                                        {order.deliveryType.toLowerCase() === "delivery" ? 
-                                                            <><i className="bi bi-truck me-1"></i> Delivery</> : 
-                                                            <><i className="bi bi-person-walking me-1"></i> Pickup</>
-                                                        }
-                                            </span>
-                                                    <span className={`badge ${getStatusBadgeClass(order.status)} rounded-2 px-2 py-1`}>
-                                                        {order.status.toUpperCase().replace('_', ' ')}
-                                            </span>
-                                                </div>
-                                            </div>
-                                            <p className="text-muted small mb-1 mt-1 fst-italic">
-                                                Placed on: {formatDate(order.createdAt)}
-                                            </p>
-                                        </div>
-                                        
-                                        <div className="card-body my-0 py-0 px-3">
-                                            <div className="d-flex justify-content-between align-items-center mb-2">
-                                                <div className="d-flex align-items-center">
-                                                    <img 
-                                                        src={order.restaurantImage || DEFAULT_IMAGE_PLACEHOLDER}
-                                                        alt={order.restaurantName}
-                                                        className="rounded-circle me-2"
-                                                        style={{ width: '35px', height: '35px', objectFit: 'cover', border: '1px solid #eee' }}
-                                                    />
-                                                    <h6 className="mb-0 fw-bold">{order.restaurantName}</h6>
-                                                </div>
-                                                <span className="fs-5 fw-bold">${order.totalAmount.toFixed(2)}</span>
-                                            </div>
-                                            
-                                            {order.deliveryType.toLowerCase() === "delivery" && order.deliveryAddress && (
-                                                <div className="mb-2">
-                                                    <p className="mb-1 small">
-                                                        <i className="bi bi-geo-alt me-1"></i>
-                                                        <span className="text-muted">Delivery to: </span>
-                                                        {order.deliveryAddress.street}, {order.deliveryAddress.city}
-                                                    </p>
-                                                </div>
-                                            )}
-                                            
-                                            {order.deliveryType.toLowerCase() === "pickup" && order.restaurantAddress && (
-                                                <div className="mb-0">
-                                                    <p className="mb-0 small">
-                                                        <i className="bi bi-shop me-1"></i>
-                                                        <span className="text-muted">Pickup from: </span>
-                                                        {order.restaurantAddress.street}, {order.restaurantAddress.city}
-                                                    </p>
-                                                </div>
-                                            )}
-                                            
-                                            {/* Order Items Overview */}
-                                            <div className="order-items pt-0 mt-0">
-                                                <div className="row">
-                                                    <div className="col-md-8">
-                                                        <ul className="list-unstyled small mb-0">
-                                                            {order.items.slice(0, 2).map((item, idx) => (
-                                                                <li key={idx} className="mb-1">
-                                                                    • {item.name}{item.size ? ` (${item.size})` : ''} × {item.quantity}
-                                                                </li>
-                                                            ))}
-                                                            {order.items.length > 2 && (
-                                                                <li className="text-muted">
-                                                                    +{order.items.length - 2} more item(s)
-                                                                </li>
-                                                            )}
-                                                        </ul>
+                                    <div className="order-hover rounded-4 h-100" onClick={() => handleViewDetails(order.id)} style={{overflow: 'hidden'}}>
+                                        <div className="card rounded-4 h-100 pb-4 px-2" style={{overflow: 'hidden'}}>
+                                            <div className="card-header bg-white mb-0 border-top-4 border-bottom-0 py-0 pt-2 px-3">
+                                                <div className="d-flex flex-wrap justify-content-between align-items-center">
+                                                    <h5 className="card-title fw-bold mb-0 me-auto">#{order.orderNumber}</h5>
+                                                    <div>
+                                                        <span className="badge text-dark rounded-2 px-2 py-1 me-1" style={{border: '1px solid lightgray'}}>
+                                                            {order.deliveryType.toLowerCase() === "delivery" ? 
+                                                                <><i className="bi bi-truck me-1"></i> Delivery</> : 
+                                                                <><i className="bi bi-person-walking me-1"></i> Pickup</>
+                                                            }
+                                                </span>
+                                                        <span className={`badge ${getStatusBadgeClass(order.status)} rounded-2 px-2 py-1`}>
+                                                            {order.status.toUpperCase().replace('_', ' ')}
+                                                </span>
                                                     </div>
-                                                    <div className="col-md-4 d-flex align-items-center justify-content-end">
-                                                        <span className="text-muted small">
-                                                            <i className="bi bi-info-circle me-1"></i>
-                                                            View Details
+                                                </div>
+                                                <p className="text-muted small mb-0 mt-1 fst-italic">
+                                                    Placed on: {formatDate(order.createdAt)}
+                                                </p>
+                                                {order?.restaurantNote && order?.status === "cancelled" && (
+                                                    <OverlayTrigger
+                                                        trigger="click"
+                                                        placement="bottom-start"
+                                                        flip={false}
+                                                        rootClose
+                                                        container={document.body}
+                                                        overlay={
+                                                            <Popover id={`popover-cancel-${order.id}`}>
+                                                                <Popover.Body>{order.restaurantNote}</Popover.Body>
+                                                            </Popover>
+                                                        }
+                                                    >
+                                                        <span
+                                                            onClick={e => e.stopPropagation()}
+                                                            className="text-danger small me-1 mb-1"
+                                                            style={{ cursor: 'pointer' }}
+                                                        >
+                                                            <i className="bi bi-x-circle me-1" style={{ fontSize: 12 }}></i><u>Cancelled by restaurant. View message.</u>
                                                         </span>
+                                                    </OverlayTrigger>
+                                                )}
+                                            </div>
+                                            
+                                            <div className="card-body my-0 py-0 px-3 mt-2 rounded-4">
+                                                <div className="d-flex justify-content-between align-items-center mb-2">
+                                                    <div className="d-flex align-items-center">
+                                                        <img 
+                                                            src={order.restaurantImage || DEFAULT_IMAGE_PLACEHOLDER}
+                                                            alt={order.restaurantName}
+                                                            className="rounded-circle me-2"
+                                                            style={{ width: '35px', height: '35px', objectFit: 'cover', border: '1px solid #eee' }}
+                                                        />
+                                                        <h6 className="mb-0 fw-bold">{order.restaurantName}</h6>
+                                                    </div>
+                                                    <span className="fs-5 fw-bold">${order.totalAmount.toFixed(2)}</span>
+                                                </div>
+                                                
+                                                {order.deliveryType.toLowerCase() === "delivery" && order.deliveryAddress && (
+                                                    <div className="mb-2">
+                                                        <p className="mb-1 small">
+                                                            <i className="bi bi-geo-alt me-1"></i>
+                                                            <span className="text-dark fw-medium">Delivery to: </span>
+                                                            {order.deliveryAddress.street}, {order.deliveryAddress.city}
+                                                        </p>
+                                                    </div>
+                                                )}
+
+                                                <div className="mb-2">
+                                                        <p className="mb-0 small">
+                                                            <span className="text-dark fw-medium">Items Count: </span>
+                                                            {order.items.map(item => item.quantity).reduce((a, b) => a + b, 0)}
+                                                        </p>
+                                                    </div>
+                                                
+                                                {order.deliveryType.toLowerCase() === "pickup" && order.restaurantAddress && (
+                                                    <div className="mb-0">
+                                                        <p className="mb-0 small">
+                                                            <i className="bi bi-shop me-1"></i>
+                                                            <span className="text-dark fw-medium">Pickup from: </span>
+                                                            {order.restaurantAddress.street}, {order.restaurantAddress.city}
+                                                        </p>
+                                                    </div>
+                                                )}
+                                                
+                                                {/* Order Items Overview */}
+                                                <div className="order-items pt-0 mt-0">
+                                                    <div className="row">
+                                                        <div className="col-md-8">
+                                                            <ul className="list-unstyled small mb-0">
+                                                                {order.items.slice(0, 2).map((item, idx) => (
+                                                                    <li key={idx} className="mb-0">
+                                                                        • {item.name}{item.size ? ` (${item.size})` : ''} × {item.quantity}
+                                                                    </li>
+                                                                ))}
+                                                                {order.items.length > 2 && (
+                                                                    <li className="text-muted">
+                                                                        <u>+{order.items.length - 2} more item(s)</u>
+                                                                    </li>
+                                                                )}
+                                                            </ul>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
@@ -411,7 +444,7 @@ const CustomerOrders = () => {
                 <Modal.Body className="pt-0 mt-2">
                     {loadingDetails ? (
                         <div className="text-center py-4">
-                            <div className="spinner-border" role="status">
+                            <div className="spinner-border text-success me-2" role="status">
                                 <span className="visually-hidden">Loading...</span>
                             </div>
                             <p className="mt-2">Loading order details...</p>
@@ -440,9 +473,7 @@ const CustomerOrders = () => {
                                 {orderDetails.customerNote && (
                                     <div className="mt-3 pt-2 border-top">
                                         <p className="mb-0">
-                                            <i className="bi bi-chat-left-text me-2"></i>
-                                            <strong>Special Instructions:</strong>
-                                            <em className="ms-2">{orderDetails.customerNote}</em>
+                                            <span className="fw-medium">Additional Instructions:</span> {orderDetails.customerNote}
                                         </p>
                                     </div>
                                 )}
@@ -644,16 +675,19 @@ const CustomerOrders = () => {
                     )}
                 </Modal.Body>
                 <Modal.Footer className="border-0">
-                    {orderDetails && canCancelOrder(orderDetails.status) && (
+                    {orderDetails && (
+                        <>
+                        <span className="text-muted fst-italic">{canCancelOrder(orderDetails.status) ? '' : 'You cannot cancel this order, it has been processed, please contact the restaurant'}</span>
                         <Button 
                             variant="outline-danger" 
                             className=""
-                            onClick={() => handleCancelOrder(orderDetails.id)}
-                            disabled={cancellingOrder}
+                            onClick={() => handleCancelOrder(orderDetails._id)}
+                            disabled={cancellingOrder || !canCancelOrder(orderDetails.status)}
+                            style={{ cursor: !canCancelOrder(orderDetails.status) ? 'not-allowed' : 'pointer' }}
                         >
                             {cancellingOrder ? (
                                 <>
-                                    <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                    <span className="spinner-border spinner-border-sm text-success me-2" role="status" aria-hidden="true"></span>
                                     Cancelling...
                                 </>
                             ) : (
@@ -662,6 +696,7 @@ const CustomerOrders = () => {
                                 </>
                             )}
                         </Button>
+                        </>
                     )}
                 </Modal.Footer>
             </Modal>

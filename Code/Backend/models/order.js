@@ -31,8 +31,13 @@ const orderItemSchema = new mongoose.Schema({
     type: String,
     required: true
   },
-  ingredients: [String],
-  imageUrl: String
+  ingredients: {
+    type: [String],
+    default: []
+  },
+  imageUrl: {
+    type: String
+  }
 });
 
 const orderSchema = new mongoose.Schema({

@@ -797,6 +797,7 @@ const CustomerEditProfile = () => {
             >
                 <span className="fs-5 me-1">←</span><u>Back to Home</u>
             </button>
+            
             <h3 className="mt-4 mb-4 fw-bold w-75 mx-auto">Edit Profile</h3>
 
             {loading && <p className="text-center text-primary">Loading...</p>}
@@ -816,8 +817,8 @@ const CustomerEditProfile = () => {
                         <div 
                             className="rounded-circle overflow-hidden"
                             style={{
-                                width: '90px',
-                                height: '90px',
+                                width: '100px',
+                                height: '100px',
                                 border: '2px solid #dee2e6',
                                 backgroundColor: '#f8f9fa'
                             }}
@@ -880,7 +881,7 @@ const CustomerEditProfile = () => {
                                             email: formData.email,
                                             phone: formData.phone,
                                             dateOfBirth: formData.dateOfBirth,
-                                            imageUrl: null // Explicitly set to null
+                                            imageUrl: null // Setting to null
                                         };
                                         
                                         // Format date to ensure it's in YYYY-MM-DD format
@@ -909,7 +910,7 @@ const CustomerEditProfile = () => {
                                             setImageSuccess(true);
                                             setTimeout(() => {
                                                 setImageSuccess(false);
-                                            }, 3000);
+                                            }, 2000);
                                         })
                                         .catch((error) => {
                                             console.error("Error removing profile picture:", error);
@@ -1014,7 +1015,7 @@ const CustomerEditProfile = () => {
                         className="btn btn-dark ms-0 rounded-1 p-2 px-4"
                         disabled={loading || uploadLoading}
                     >
-                        {loading ? "Updating..." : uploadLoading ? "Uploading Image..." : "Update Profile"}
+                        {loading ? "Updating..." : "Update Profile"}
                     </button>
                     <button 
                         type="button" 
@@ -1113,7 +1114,7 @@ const CustomerEditProfile = () => {
                                         >
                                             {passwordLoading ? (
                                                 <>
-                                                    <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                                    <span className="spinner-border text-success spinner-border-sm me-2" role="status" aria-hidden="true"></span>
                                                     Updating...
                                                 </>
                                             ) : "Update Password"}
@@ -1253,8 +1254,8 @@ const CustomerEditProfile = () => {
                                             />
                                             {loadingStates && (
                                                 <div className="position-absolute" style={{ right: '10px', top: '10px' }}>
-                                                    <span className="spinner-border spinner-border-sm text-secondary" role="status"></span>
-                </div>
+                                                    <span className="spinner-border spinner-border-sm text-success" role="status"></span>
+                                                </div>
                                             )}
                                             
                                             {/* State Suggestions Dropdown */}
@@ -1304,7 +1305,7 @@ const CustomerEditProfile = () => {
                                             />
                                             {loadingCities && (
                                                 <div className="position-absolute" style={{ right: '10px', top: '10px' }}>
-                                                    <span className="spinner-border spinner-border-sm text-secondary" role="status"></span>
+                                                    <span className="spinner-border spinner-border-sm text-success" role="status"></span>
                                                 </div>
                                             )}
                                             

@@ -11,7 +11,7 @@ const AboutUs = () => {
         if (isCustomerAuthenticated) {
             return "/restaurants";
         } else if (isRestaurantAuthenticated) {
-            return "/restaurant/home";
+            return "/restaurant/dashboard";
         }
         return "/";
     };

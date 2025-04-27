@@ -91,10 +91,8 @@ customerSchema.pre('save', async function(next) {
   try {
     // Check if password needs to be hashed
     if (needsPasswordHash(customer.password)) {
-      console.log('Hashing password in pre-save hook...');
       const salt = await bcrypt.genSalt(10);
       const hash = await bcrypt.hash(customer.password, salt);
-      console.log('Password hashed in pre-save:', hash);
       customer.password = hash;
     }
     next();
@@ -105,12 +103,8 @@ customerSchema.pre('save', async function(next) {
 
 // Method to compare password
 customerSchema.methods.comparePassword = async function(candidatePassword) {
-  console.log('Comparing passwords in model method...');
-  console.log('Candidate password length:', candidatePassword.length);
-  console.log('Stored hash:', this.password);
   try {
     const isMatch = await bcrypt.compare(candidatePassword, this.password);
-    console.log('Password comparison result:', isMatch);
     return isMatch;
   } catch (error) {
     console.error('Error comparing passwords:', error);

@@ -153,6 +153,18 @@ const cartSlice = createSlice({
         saveCartToStorage(state); // Save updated cart
       }
     },
+    updateCartItemCategory: (state, action) => {
+      const { id, category } = action.payload;
+      
+      // Find the item by ID
+      const itemIndex = state.items.findIndex(item => item.id === id);
+      
+      if (itemIndex >= 0) {
+        // Update the category field to be an array
+        state.items[itemIndex].category = category;
+        saveCartToStorage(state); // Save updated cart
+      }
+    },
     setOrderPreference: (state, action) => {
       state.orderPreference = action.payload;
     }
@@ -168,7 +180,8 @@ export const {
   removeItem, 
   clearCart, 
   setOrderPreference,
-  updateItemSize
+  updateItemSize,
+  updateCartItemCategory
 } = cartSlice.actions;
 
 // Selectors

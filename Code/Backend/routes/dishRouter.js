@@ -6,9 +6,9 @@ const { uploadImage } = require('../utils/imageUpload');
 
 // Protected routes - only for authenticated restaurants
 router.post('/', authenticateRestaurant, dishController.createDish);
-router.put('/:id', authenticateRestaurant, dishController.updateDish);
-router.delete('/:id', authenticateRestaurant, dishController.deleteDish);
-router.patch('/:id/availability', authenticateRestaurant, dishController.toggleAvailability);
+router.put('/:dishId', authenticateRestaurant, dishController.updateDish);
+router.delete('/:dishId', authenticateRestaurant, dishController.deleteDish);
+router.patch('/:dishId/availability', authenticateRestaurant, dishController.toggleAvailability);
 
 // Image upload route
 router.post('/upload-image', async (req, res) => {

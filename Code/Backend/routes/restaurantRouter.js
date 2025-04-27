@@ -12,13 +12,13 @@ router.get('/', restaurantController.getAllRestaurants);
 
 // Protected routes
 router.post('/logout', authenticateRestaurant, restaurantController.logout);
-router.get('/profile', authenticateRestaurant, restaurantController.getRestaurantProfile);
-router.put('/profile', authenticateRestaurant, restaurantController.updateRestaurantProfile);
-router.put('/operating-hours', authenticateRestaurant, restaurantController.updateOperatingHours);
-router.put('/status', authenticateRestaurant, restaurantController.toggleStatus);
-router.put('/delivery', authenticateRestaurant, restaurantController.toggleDelivery);
-router.put('/pickup', authenticateRestaurant, restaurantController.togglePickup);
-router.delete('/account', authenticateRestaurant, restaurantController.deleteRestaurant);
+router.get('/profile/:restaurantId', authenticateRestaurant, restaurantController.getRestaurantProfile);
+router.put('/profile/:restaurantId', authenticateRestaurant, restaurantController.updateRestaurantProfile);
+router.put('/operating-hours/:restaurantId', authenticateRestaurant, restaurantController.updateOperatingHours);
+router.put('/status/:restaurantId', authenticateRestaurant, restaurantController.toggleStatus);
+router.put('/delivery/:restaurantId', authenticateRestaurant, restaurantController.toggleDelivery);
+router.put('/pickup/:restaurantId', authenticateRestaurant, restaurantController.togglePickup);
+router.delete('/account/:restaurantId', authenticateRestaurant, restaurantController.deleteRestaurant);
 
 // Image upload route
 router.post('/upload-image', async (req, res) => {
@@ -50,7 +50,7 @@ router.post('/upload-image', async (req, res) => {
 });
 
 // Order management
-router.get('/orders', authenticateRestaurant, restaurantController.getRestaurantOrders);
+router.get('/:restaurantId/orders', authenticateRestaurant, restaurantController.getRestaurantOrders);
 router.get('/orders/:orderId', authenticateRestaurant, restaurantController.getRestaurantOrderDetails);
 router.put('/orders/:orderId/status', authenticateRestaurant, restaurantController.updateOrderStatus);
 

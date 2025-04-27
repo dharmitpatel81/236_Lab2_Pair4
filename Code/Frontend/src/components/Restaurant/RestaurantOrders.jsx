@@ -76,14 +76,14 @@ const RestaurantOrders = () => {
         if (selectedOrder) {
             setSelectedOrder(null); // Clear selectedOrder to go back to the orders list
         } else {
-            navigate('/restaurant/home'); // Navigate to home if no order is selected
+            navigate('/restaurant/dashboard'); // Navigate to home if no order is selected
         }
     };
 
     if (loading) {
         return (
             <div className="container-fluid min-vh-100 d-flex align-items-center justify-content-center">
-                <div className="spinner-border text-primary" role="status">
+                <div className="spinner-border text-success" role="status">
                     <span className="visually-hidden">Loading...</span>
                 </div>
             </div>

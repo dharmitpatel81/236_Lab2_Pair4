@@ -91,18 +91,18 @@ const NavSidebar = () => {
               <button className="btn btn-dark w-100 mt-2">Sign up</button>
             </Link>
             <Link
-              to="/owner/login"
+              to="/restaurant/login"
               className="text-dark text-decoration-none d-block fw-bolder mt-3"
               style={{ fontSize: "14px" }}
             >
               Manage your Restaurant
             </Link>
             <Link
-              to="/owner/signup"
+              to="/restaurant/signup"
               className="text-dark text-decoration-none d-block fw-bold mt-1"
               style={{ fontSize: "14px" }}
             >
-              Sign Up as an Owner
+              Sign Up for a Restaurant
             </Link>
           </>
         )}

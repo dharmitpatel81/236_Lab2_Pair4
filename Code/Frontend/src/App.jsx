@@ -21,8 +21,8 @@ import CustomerFavorites from './components/Customer/CustomerFavorites';
 import RestaurantSignup from './components/Auth/RestaurantSignup';
 import RestaurantLogin from './components/Auth/RestaurantLogin';
 import RestaurantDashboard from './components/Restaurant/RestaurantDashboard';
-import RestaurantOrders from './components/Restaurant/RestaurantOrders';
-import RestaurantProfile from './components/Restaurant/RestaurantProfile';
+import ManageDishes from './components/Restaurant/ManageDishes';
+import Performance from './components/Restaurant/Performance';
 
 import './App.css';
 
@@ -46,7 +46,7 @@ const CustomerProtectedRoute = ({ children }) => {
   }, [dispatch, isCustomerAuthenticated]);
   
   if (!initialCheckDone || loading) {
-    return <div className="d-flex justify-content-center mt-5"><div className="spinner-border" role="status"></div></div>;
+    return <div className="d-flex justify-content-center mt-5"><div className="spinner-border text-success" role="status"></div></div>;
   }
   
   return isCustomerAuthenticated ? children : <Navigate to="/customer/login" state={{ signedOut: true }} />;
@@ -72,7 +72,7 @@ const RestaurantProtectedRoute = ({ children }) => {
   }, [dispatch, isRestaurantAuthenticated]);
   
   if (!initialCheckDone || loading) {
-    return <div className="d-flex justify-content-center mt-5"><div className="spinner-border" role="status"></div></div>;
+    return <div className="d-flex justify-content-center mt-5"><div className="spinner-border text-success" role="status"></div></div>;
   }
   
   return isRestaurantAuthenticated ? children : <Navigate to="/restaurant/login" state={{ signedOut: true }} />;
@@ -97,7 +97,7 @@ const AppContent = () => {
           <Route path="/restaurants" element={<CustomerHome />} />
           <Route path="/restaurant/:id" element={<RestaurantDetail />} />
           <Route path="/cart" element={<Cart />} />
-          <Route path="/customer/profile/:id" element={
+          <Route path="/customer/profile" element={
             <CustomerProtectedRoute>
               <CustomerEditProfile />
             </CustomerProtectedRoute>
@@ -116,19 +116,19 @@ const AppContent = () => {
           {/* Restaurant */}
           <Route path="/restaurant/signup" element={<RestaurantSignup />} />
           <Route path="/restaurant/login" element={<RestaurantLogin />} />
-          <Route path="/restaurant/home" element={
+          <Route path="/restaurant/dashboard" element={
             <RestaurantProtectedRoute>
               <RestaurantDashboard />
             </RestaurantProtectedRoute>
           } />
-          <Route path="/restaurant/orders" element={
+          <Route path="/restaurant/dishes" element={
             <RestaurantProtectedRoute>
-              <RestaurantOrders />
+              <ManageDishes />
             </RestaurantProtectedRoute>
           } />
-          <Route path="/restaurant/profile" element={
+          <Route path="/restaurant/performance" element={
             <RestaurantProtectedRoute>
-              <RestaurantProfile />
+              <Performance />
             </RestaurantProtectedRoute>
           } />
         </Routes>
@@ -163,7 +163,7 @@ function App() {
   }, [dispatch]);
 
   if (!authChecked) {
-    return <div className="d-flex justify-content-center mt-5"><div className="spinner-border" role="status"></div></div>;
+    return <div className="d-flex justify-content-center mt-5"><div className="spinner-border text-success" role="status"></div></div>;
   }
 
   return (

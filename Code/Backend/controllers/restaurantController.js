@@ -9,6 +9,17 @@ const validateZipCode = (zipCode) => {
   return zipRegex.test(zipCode);
 };
 
+// Password validation function (exported for reuse)
+const validatePassword = (password) => {
+  const errors = [];
+  if (!password || password.length < 6) errors.push('Password must be at least 6 characters long');
+  if (!/[A-Z]/.test(password)) errors.push('Password must contain at least one uppercase letter');
+  if (!/[a-z]/.test(password)) errors.push('Password must contain at least one lowercase letter');
+  if (!/[0-9]/.test(password)) errors.push('Password must contain at least one number');
+  if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) errors.push('Password must contain at least one special character (!@#$%^&*(),.?":{}|<>)');
+  return errors;
+};
+
 const validateAddress = (address) => {
   const errors = [];
   
@@ -84,7 +95,6 @@ exports.register = async (req, res) => {
       operatingHours, 
       offersPickup, 
       offersDelivery,
-      cuisine = [],
       priceRange,
       imageUrl
     } = req.body;
@@ -121,7 +131,7 @@ exports.register = async (req, res) => {
       operatingHours,
       offersPickup,
       offersDelivery,
-      cuisine,
+      cuisine: [],  // Starting with no cuisines as they will populate via dishes
       priceRange,
       imageUrl,
       status: 'inactive', // Start as inactive until dishes are added
@@ -179,9 +189,7 @@ exports.login = async (req, res) => {
 
 exports.getRestaurantProfile = async (req, res) => {
   try {
-    const restaurantId = req.session.userId;
-    console.log('Fetching profile for restaurant ID:', restaurantId);
-    
+    const restaurantId = req.params.restaurantId;    
     const restaurant = await Restaurant.findById(restaurantId).select('-password');
     if (!restaurant) {
       return res.status(404).json({ message: 'Restaurant not found' });
@@ -221,13 +229,53 @@ exports.getRestaurantProfile = async (req, res) => {
 
 exports.updateRestaurantProfile = async (req, res) => {
   try {
+    const { restaurantId } = req.params;
     const updates = req.body;
+    
+    // Validate that the logged-in restaurant is updating their own data
+    const loggedInRestaurantId = req.session.userId;
+    if (loggedInRestaurantId !== restaurantId) {
+      return res.status(403).json({ message: 'Not authorized to update this restaurant' });
+    }
+    
     // Fields that should not be updated through this endpoint
-    delete updates.password; // Don't allow password updates through this route
+    delete updates.password; // Don't allow direct password updates through this route
     delete updates.status; // Status should be updated through a separate endpoint
     delete updates.dishes; // Dishes should be updated through a separate endpoint
     delete updates.rating; // Rating should be calculated by the database
     delete updates.ratingCount; // Rating count should be calculated by the database
+    delete updates.operatingHours; // Operating hours should be updated via a separate endpoint
+
+    // --- Password Change Logic ---
+    // If both currentPassword and newPassword are provided, attempt password change
+    const { currentPassword, newPassword } = req.body;
+    if (currentPassword && newPassword) {
+      // Validate new password
+      const passwordErrors = validatePassword(newPassword);
+      if (passwordErrors.length > 0) {
+        return res.status(400).json({
+          message: 'Invalid new password',
+          errors: passwordErrors
+        });
+      }
+      // Fetch the restaurant by ID
+      const restaurant = await Restaurant.findById(restaurantId);
+      if (!restaurant) {
+        return res.status(404).json({ message: 'Restaurant not found' });
+      }
+      // Verify the current password
+      const isPasswordValid = await restaurant.comparePassword(currentPassword);
+      if (!isPasswordValid) {
+        return res.status(401).json({ message: 'Current password is incorrect' });
+      }
+      // Set the new password
+      restaurant.password = newPassword;
+      await restaurant.save();
+      // Human-friendly success message
+      return res.json({
+        message: 'Password updated successfully.'
+      });
+    }
 
     // Validate all fields
     const validationErrors = [];
@@ -310,29 +358,6 @@ exports.updateRestaurantProfile = async (req, res) => {
       }
     }
 
-    // Validate operatingHours if provided
-    if (updates.operatingHours !== undefined) {
-      if (!Array.isArray(updates.operatingHours)) {
-        validationErrors.push('Operating hours must be an array');
-      } else {
-        const daysOfWeek = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
-        const validOperatingHours = updates.operatingHours.every(day => {
-          return (
-            daysOfWeek.includes(day.day) &&
-            typeof day.open === 'string' &&
-            typeof day.close === 'string' &&
-            /^([01]\d|2[0-3]):([0-5]\d)$/.test(day.open) &&
-            /^([01]\d|2[0-3]):([0-5]\d)$/.test(day.close) &&
-            typeof day.isClosed === 'boolean'
-          );
-        });
-        
-        if (!validOperatingHours) {
-          validationErrors.push('Operating hours must have valid day, open time (HH:MM), close time (HH:MM), and isClosed flag');
-        }
-      }
-    }
-
     // Validate address if it's being updated
     if (updates.address) {
       const addressErrors = validateAddress(updates.address);
@@ -347,7 +372,6 @@ exports.updateRestaurantProfile = async (req, res) => {
       });
     }
 
-    const restaurantId = req.session.userId;
     const restaurant = await Restaurant.findByIdAndUpdate(
       restaurantId,
       { $set: updates },
@@ -395,9 +419,16 @@ exports.updateRestaurantProfile = async (req, res) => {
 exports.updateOperatingHours = async (req, res) => {
   try {
     const { operatingHours } = req.body;
+    const { restaurantId } = req.params;
     
     if (!operatingHours) {
       return res.status(400).json({ message: 'Operating hours are required' });
+    }
+    
+    // Validate that the logged-in restaurant is updating their own data
+    const loggedInRestaurantId = req.session.userId;
+    if (loggedInRestaurantId !== restaurantId) {
+      return res.status(403).json({ message: 'Not authorized to update this restaurant' });
     }
     
     // Validate operating hours
@@ -439,7 +470,6 @@ exports.updateOperatingHours = async (req, res) => {
       });
     }
     
-    const restaurantId = req.session.userId;
     const restaurant = await Restaurant.findByIdAndUpdate(
       restaurantId,
       { $set: { operatingHours } },
@@ -551,67 +581,60 @@ exports.getRestaurantById = async (req, res) => {
 
 exports.toggleStatus = async (req, res) => {
   try {
-    const restaurantId = req.session.userId;
+    const { restaurantId } = req.params;
     
-    // Get current restaurant status
-    const currentRestaurant = await Restaurant.findById(restaurantId).select('status');
-    if (!currentRestaurant) {
-      return res.status(404).json({ message: 'Restaurant not found' });
+    // Validate that the logged-in restaurant is updating their own data
+    const loggedInRestaurantId = req.session.userId;
+    if (loggedInRestaurantId !== restaurantId) {
+      return res.status(403).json({ message: 'Not authorized to update this restaurant' });
     }
     
-    // Toggle between active and inactive
-    const newStatus = currentRestaurant.status === 'active' ? 'inactive' : 'active';
-    
-    // If trying to set status to active, check if restaurant has available dishes
-    if (newStatus === 'active') {
-      // Check total dish count
-      const totalDishCount = await Dish.countDocuments({ restaurantId });
-      
-      if (totalDishCount === 0) {
-        return res.status(400).json({ 
-          message: 'Cannot set status to active. Restaurant must have at least one dish.' 
-        });
-      }
-      
-      // Check available dish count
-      const availableDishCount = await Dish.countDocuments({ 
-        restaurantId, 
-        isAvailable: true 
-      });
-      
-      if (availableDishCount === 0) {
-        return res.status(400).json({ 
-          message: 'Cannot set status to active. Restaurant must have at least one available dish. Please make at least one dish available.' 
-        });
-      }
-    }
-
-    // Update restaurant status
-    const restaurant = await Restaurant.findByIdAndUpdate(
-      restaurantId,
-      { status: newStatus },
-      { new: true }
-    ).select('-password');
-
+    const restaurant = await Restaurant.findById(restaurantId);
     if (!restaurant) {
       return res.status(404).json({ message: 'Restaurant not found' });
     }
-
+    
+    // Check if the restaurant is currently inactive and trying to become active
+    if (restaurant.status === 'inactive') {
+      // Count available dishes
+      const availableDishCount = await Dish.countDocuments({ 
+        restaurantId: restaurantId,
+        isAvailable: true
+      });
+      
+      // If trying to activate with no available dishes, prevent the change
+      if (availableDishCount === 0) {
+        return res.status(400).json({ 
+          message: 'Cannot activate restaurant with no available dishes. Please add at least one available dish first.',
+          status: restaurant.status
+        });
+      }
+    }
+    
+    // Toggle status
+    const newStatus = restaurant.status === 'active' ? 'inactive' : 'active';
+    restaurant.status = newStatus;
+    await restaurant.save();
+    
     res.json({
-      message: `Restaurant status toggled to ${newStatus} successfully for ${restaurant.name}`,
-      status: restaurant.status,
-      email: restaurant.email,
-      address: restaurant.address
+      message: `Restaurant status updated to ${newStatus}`,
+      status: newStatus
     });
   } catch (error) {
-    res.status(500).json({ message: 'Error updating restaurant status', error: error.message });
+    res.status(500).json({ message: 'Error toggling restaurant status', error: error.message });
   }
 };
 
 // Toggle delivery option for restaurant
 exports.toggleDelivery = async (req, res) => {
   try {
-    const restaurantId = req.session.userId;
+    const { restaurantId } = req.params;
+    
+    // Validate that the logged-in restaurant is updating their own data
+    const loggedInRestaurantId = req.session.userId;
+    if (loggedInRestaurantId !== restaurantId) {
+      return res.status(403).json({ message: 'Not authorized to update this restaurant' });
+    }
     
     const restaurant = await Restaurant.findById(restaurantId);
     if (!restaurant) {
@@ -636,7 +659,13 @@ exports.toggleDelivery = async (req, res) => {
 // Toggle pickup option for restaurant
 exports.togglePickup = async (req, res) => {
   try {
-    const restaurantId = req.session.userId;
+    const { restaurantId } = req.params;
+    
+    // Validate that the logged-in restaurant is updating their own data
+    const loggedInRestaurantId = req.session.userId;
+    if (loggedInRestaurantId !== restaurantId) {
+      return res.status(403).json({ message: 'Not authorized to update this restaurant' });
+    }
     
     const restaurant = await Restaurant.findById(restaurantId);
     if (!restaurant) {
@@ -660,7 +689,13 @@ exports.togglePickup = async (req, res) => {
 
 exports.deleteRestaurant = async (req, res) => {
   try {
-    const restaurantId = req.session.userId;
+    const { restaurantId } = req.params;
+    
+    // Validate that the logged-in restaurant is deleting their own account
+    const loggedInRestaurantId = req.session.userId;
+    if (loggedInRestaurantId !== restaurantId) {
+      return res.status(403).json({ message: 'Not authorized to delete this restaurant' });
+    }
 
     // Find and delete all dishes associated with this restaurant
     await Dish.deleteMany({ restaurantId });
@@ -694,7 +729,7 @@ exports.deleteRestaurant = async (req, res) => {
 // Get all orders for a restaurant
 exports.getRestaurantOrders = async (req, res) => {
   try {
-    const restaurantId = req.session.userId;
+    const restaurantId = req.params.restaurantId;
     const { status } = req.query;
     
     // Get restaurant details
@@ -716,12 +751,18 @@ exports.getRestaurantOrders = async (req, res) => {
         'customerDetails.firstName': 1,
         'customerDetails.lastName': 1,
         'customerDetails.phone': 1,
-        items: { $slice: 3 }, // Limit to first 3 items to reduce payload size
+        'customerDetails.email': 1,
+        items: 1,
         status: 1,
+        restaurantNote: 1,
         isDelivery: 1,
         subtotal: 1,
+        taxRate: 1,
         taxAmount: 1,
+        deliveryFee: 1,
         totalAmount: 1,
+        customerNote: 1,
+        deliveryAddress: 1,
         createdAt: 1,
         updatedAt: 1
       })
@@ -743,19 +784,28 @@ exports.getRestaurantOrders = async (req, res) => {
       orderNumber: order.orderNumber,
       customer: {
         name: `${order.customerDetails.firstName} ${order.customerDetails.lastName}`,
-        phone: order.customerDetails.phone
+        phone: order.customerDetails.phone,
+        email: order.customerDetails.email
       },
       items: order.items.map(item => ({
         name: item.name,
-        quantity: item.quantity
+        size: item.size,
+        price: item.price,
+        quantity: item.quantity,
+        totalPrice: item.price * item.quantity
       })),
-      totalItems: order.items.length,
+      totalItems: order.items.map(item => item.quantity).reduce((a, b) => a + b, 0),
       status: order.status,
-      deliveryType: order.isDelivery ? 'Delivery' : 'Pickup',
+      isDelivery: order.isDelivery,
+      deliveryAddress: order.deliveryAddress,
+      customerNote: order.customerNote,
+      restaurantNote: order.restaurantNote,
       financials: {
         subtotal: order.subtotal,
-        tax: order.taxAmount,
-        total: order.totalAmount
+        taxRate: order.taxRate,
+        taxAmount: order.taxAmount,
+        deliveryFee: order.deliveryFee,
+        totalAmount: order.totalAmount
       },
       createdAt: order.createdAt,
       updatedAt: order.updatedAt
@@ -792,13 +842,6 @@ exports.updateOrderStatus = async (req, res) => {
       return res.status(400).json({
         message: 'Order status is already \'' + status + '\'. Choose another status for update.'
       })
-    }
-    
-    // Prevent updation of cancelled orders
-    if (oldStatus === 'cancelled') {
-      return res.status(400).json({ 
-        message: 'Cannot update a cancelled order.'
-      });
     }
 
     // Defined valid statuses based on delivery type
@@ -891,7 +934,7 @@ exports.getRestaurantOrderDetails = async (req, res) => {
         price: item.price,
         quantity: item.quantity,
         totalPrice: item.totalPrice,
-        category: item.category,
+        category: item.category ? item.category.split(', ') : [],
         ingredients: item.ingredients || []
       })),
       customerNote: order.customerNote,

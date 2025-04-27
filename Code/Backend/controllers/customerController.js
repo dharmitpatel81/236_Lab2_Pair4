@@ -145,17 +145,12 @@ const validateAddress = (address) => {
 // Controller functions
 exports.register = async (req, res) => {
   try {
-    console.log('Customer registration request received');
-
-    
     // Handle image upload if present
     let imageUrl = null;
     if (req.files && req.files.image) {
       try {
         const file = req.files.image;
-        console.log('Processing image upload:', file.name);
         imageUrl = await uploadImage(file, 'customers');
-        console.log('Image uploaded successfully:', imageUrl);
       } catch (uploadError) {
         console.error('Error uploading image:', uploadError);
         return res.status(500).json({ message: 'Error uploading profile image' });
@@ -167,7 +162,6 @@ exports.register = async (req, res) => {
     if (typeof addresses === 'string') {
       try {
         addresses = JSON.parse(addresses);
-        console.log('Parsed addresses:', addresses);
       } catch (error) {
         console.error('Error parsing addresses:', error);
         return res.status(400).json({ message: 'Invalid addresses format' });
@@ -251,21 +245,16 @@ exports.register = async (req, res) => {
 exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
-    console.log('Login attempt for email:', email);
-
     // Find customer
     const customer = await Customer.findOne({ email });
     if (!customer) {
-      console.log('Customer not found with email:', email);
       return res.status(401).json({ message: 'Invalid credentials' });
     }
-    console.log('Customer found:', { id: customer._id, email: customer.email });
 
     // Check password using model method
     const isValidPassword = await customer.comparePassword(password);
     
     if (!isValidPassword) {
-      console.log('Password verification failed for customer:', customer._id);
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
@@ -329,7 +318,6 @@ exports.updateProfile = async (req, res) => {
 
     // Handle password change if requested
     if (currentPassword && newPassword) {
-      console.log("Password change requested");
       
       // Validate new password
       const passwordErrors = validatePassword(newPassword);
@@ -348,7 +336,6 @@ exports.updateProfile = async (req, res) => {
       
       // Set new password
       customer.password = newPassword;
-      console.log("Password change verified and will be updated");
     }
 
     // Check if email is already in use by another customer
@@ -375,11 +362,6 @@ exports.updateProfile = async (req, res) => {
 
     // Return updated customer data
     const updatedCustomer = await Customer.findById(customerId).select('-password');
-
-    console.log("Profile updated successfully:", {
-      id: updatedCustomer._id,
-      imageUrl: updatedCustomer.imageUrl
-    });
 
     res.json({
       message: 'Profile updated successfully',
@@ -692,7 +674,7 @@ exports.createOrder = async (req, res) => {
         price: selectedSize.price,
         quantity: item.quantity,
         totalPrice: selectedSize.price * item.quantity,
-        category: dish.category,
+        category: Array.isArray(dish.category) ? dish.category.join(', ') : (typeof dish.category === 'string' ? dish.category : ''),
         ingredients: dish.ingredients,
         imageUrl: dish.imageUrl
       };
@@ -834,6 +816,7 @@ exports.getCustomerOrders = async (req, res) => {
       id: order._id,
       orderNumber: order.orderNumber,
       restaurantName: order.restaurantDetails.name,
+      restaurantNote: order.restaurantNote,
       restaurantImage: order.restaurantDetails.imageUrl || null,
       restaurantAddress: order.restaurantDetails.address ? {
         street: order.restaurantDetails.address.street || '',
@@ -882,7 +865,16 @@ exports.getOrderDetails = async (req, res) => {
       return res.status(404).json({ message: 'Order not found' });
     }
 
-    res.json(order);
+    // Process order to convert comma-separated categories to arrays
+    const processedOrder = {
+      ...order.toObject(),
+      items: order.items.map(item => ({
+        ...item.toObject(),
+        category: item.category ? item.category.split(', ') : []
+      }))
+    };
+
+    res.json(processedOrder);
   } catch (error) {
     res.status(500).json({ message: 'Error fetching order details', error: error.message });
   }

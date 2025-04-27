@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { fetchRestaurant } from "../../redux/slices/restaurant/restaurantSlice";
+import { fetchCustomer } from "../../redux/slices/customer/customerSlice";
 import { 
     fetchRestaurantRatings, 
     clearRatings, 
@@ -12,6 +13,7 @@ import {
 } from "../../redux/slices/customer/ratingSlice";
 import { 
     addToCart,
+    clearCart,
     selectOrderPreference,
     setOrderPreference 
 } from "../../redux/slices/customer/cartSlice";
@@ -82,7 +84,15 @@ const toggleStyles = `
 const RestaurantDetail = () => {
     const { id } = useParams(); 
     const dispatch = useDispatch();
+    const navigate = useNavigate();
     
+
+    // Scroll to rating section
+    const scrollToRating = () => {
+        const el = document.getElementById('ratingSection');
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      };
+
     // State for edit modal
     const [showEditModal, setShowEditModal] = useState(false);
     const [editRating, setEditRating] = useState({
@@ -112,8 +122,26 @@ const RestaurantDetail = () => {
     // State for showing hours dropdown
     const [showHoursDropdown, setShowHoursDropdown] = useState(false);
     
+    // Add this to the state variables
+    const [categoryFilter, setCategoryFilter] = useState('all');
+    
     // Get restaurant data from Redux store with updated selectors
     const { restaurant, dishes, detailsStatus, detailsError } = useSelector((state) => state.restaurant);
+    
+    // Determine if restaurant is currently open based on today's operating hours and system time
+    const isOpenNow = useMemo(() => {
+        if (!restaurant?.operatingHours) return false;
+        const now = new Date();
+        const day = now.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+        const hours = restaurant.operatingHours[day];
+        if (!hours || hours.isClosed || !hours.open || !hours.close) return false;
+        const [oh, om] = hours.open.split(':').map(Number);
+        const [ch, cm] = hours.close.split(':').map(Number);
+        const currentMinutes = now.getHours() * 60 + now.getMinutes();
+        const openMinutes = oh * 60 + om;
+        const closeMinutes = ch * 60 + cm;
+        return currentMinutes >= openMinutes && currentMinutes < closeMinutes;
+    }, [restaurant?.operatingHours]);
     
     // Get ratings data from Redux
     const { ratings, status: ratingsStatus, error: ratingsError } = useSelector((state) => state.ratings);
@@ -123,7 +151,8 @@ const RestaurantDetail = () => {
     
     // Get currently logged in customer
     const { customer } = useSelector((state) => state.auth);
-    
+    const isCustomerAuthenticated = !!customer;
+
     // Get cart items with safe fallback
     const cartItems = useSelector((state) => state.cart?.items || []);
     
@@ -303,7 +332,6 @@ const RestaurantDetail = () => {
         if (editRating.id) {
             try {
                 setEditRatingError("");
-                console.log("Saving review with ID:", editRating.id);
                 
                 // Dispatch with await to ensure we wait for the operation to complete
             await dispatch(updateRating({
@@ -350,33 +378,39 @@ const RestaurantDetail = () => {
         }, 5000);
     };
 
+    // Cart context to handle switching restaurants
+    const cartRestaurantId = useSelector(state => state.cart.restaurantId);
+    const [showSwitchModal, setShowSwitchModal] = useState(false);
+    const [pendingAdd, setPendingAdd] = useState({ dish: null, quantity: 0 });
+    const [oldRestaurantName, setOldRestaurantName] = useState("");
+    // Fetch name of previous restaurant for modal message
+    useEffect(() => {
+        if (cartRestaurantId && restaurant?.id && cartRestaurantId !== restaurant.id) {
+            axios.get(`/api/restaurants/${cartRestaurantId}`)
+                .then(res => setOldRestaurantName(res.data.name))
+                .catch(err => console.error("Error fetching previous restaurant:", err));
+        }
+    }, [cartRestaurantId, restaurant?.id]);
+
+    // Add to cart handler with switch confirmation
     const handleAddToCart = (dish) => {
         const quantityToAdd = quantities[dish.id] || 1;
-        dispatch(addToCart({ 
-            ...dish, 
-            quantity: quantityToAdd,
-            restaurant_id: restaurant?.id
-        }));
+        // If cart has items from another restaurant, confirm reset
+        if (cartItems.length > 0 && cartRestaurantId && cartRestaurantId !== restaurant.id) {
+            setPendingAdd({ dish, quantity: quantityToAdd });
+            setShowSwitchModal(true);
+            return;
+        }
+        dispatch(addToCart({ ...dish, quantity: quantityToAdd, restaurant_id: restaurant.id }));
         showCartBubble(quantityToAdd);
     };
-    
-    const handleIncreaseQuantity = (dish) => {
-        dispatch(addToCart({ 
-            ...dish, 
-            quantity: 1,
-            restaurant_id: restaurant?.id
-        }));
-        showCartBubble(1);
-    };
 
-    const handleDecreaseQuantity = (dish) => {
-        if (quantities[dish.id] > 0) {
-            dispatch(addToCart({ 
-                ...dish, 
-                quantity: -1,
-                restaurant_id: restaurant?.id
-            }));
-        }
+    // Confirm clearing cart and adding new item
+    const handleConfirmSwitch = () => {
+        dispatch(clearCart());
+        dispatch(addToCart({ ...pendingAdd.dish, quantity: pendingAdd.quantity, restaurant_id: restaurant.id }));
+        showCartBubble(pendingAdd.quantity);
+        setShowSwitchModal(false);
     };
 
     // Add this helper function before the component or inside it
@@ -423,6 +457,14 @@ const RestaurantDetail = () => {
     
     // Handle adding the dish to cart
     const handleAddDishToCart = () => {
+
+        if (!isCustomerAuthenticated) {
+            if(window.confirm("Please log in to add items to your cart.")) {
+                return navigate('/customer/login');
+            }
+            return;
+        }
+
         if (!selectedDish || !selectedSize) return;
         
         const dishToAdd = {
@@ -538,6 +580,39 @@ const RestaurantDetail = () => {
         };
     }, [showHoursDropdown]);
 
+    // Add this function to filter dishes by category
+    const getFilteredDishes = () => {
+        if (!restaurant.dishes || !Array.isArray(restaurant.dishes)) return [];
+        
+        // First filter by availability - only show available dishes
+        const availableDishes = restaurant.dishes.filter(dish => dish.isAvailable);
+        
+        // Then filter by category if needed
+        if (categoryFilter === 'all') return availableDishes;
+        
+        return availableDishes.filter(dish => 
+            Array.isArray(dish.category) && dish.category.includes(categoryFilter)
+        );
+    };
+
+    // Add this function to get unique categories from dishes
+    const getUniqueCategories = () => {
+        if (!restaurant.dishes || !Array.isArray(restaurant.dishes)) return [];
+        
+        const categorySets = new Set();
+        
+        // Only consider available dishes for categories
+        restaurant.dishes
+            .filter(dish => dish.isAvailable)
+            .forEach(dish => {
+                if (Array.isArray(dish.category)) {
+                    dish.category.forEach(cat => categorySets.add(cat));
+                }
+            });
+        
+        return Array.from(categorySets).sort();
+    };
+
     // Show loading state
     if (detailsStatus === "loading") {
         return (
@@ -628,7 +703,7 @@ const RestaurantDetail = () => {
                     box-shadow: 0 3px 10px rgba(0,0,0,0.2);
                     padding: 18px;
                     z-index: 1000;
-                    min-width: 250px;
+                    min-width: 300px;
                     margin-top: 10px;
                     right: 0;
                 }
@@ -719,7 +794,7 @@ const RestaurantDetail = () => {
                                     </button>
                                     
                                     {showHoursDropdown && (
-                                        <div className="hours-dropdown rounded-4 py-2 px-4">
+                                        <div className="hours-dropdown rounded-4 py-2 px-4 w-100 dropdown-animate">
                                             {restaurant.operatingHours ? (
                                                 Object.entries(restaurant.operatingHours).map(([day, hours]) => (
                                                     <div key={day} className="hours-dropdown-day">
@@ -739,14 +814,38 @@ const RestaurantDetail = () => {
                                 </div>
                             </div>
                         </div>
-                        <div className="my-2">
-                            {(ratingStats.rating > 0 || restaurant.rating) && (
-                                <p className="mb-1 d-flex align-items-center">
-                                    {ratingStats.rating || restaurant.rating}<i className="bi bi-star ms-1" style={{ color: "#000", fontSize: "0.85rem" }}></i>  
+                        <span className={`ms-0 fw-bold mb-0 ${isOpenNow ? 'text-success' : 'text-danger'}`}>{isOpenNow ? 'Open' : 'Closed'}</span>
+                        <div className="my-1" onClick={scrollToRating} style={{ cursor: 'pointer' }}>
+                            {(ratingStats.rating > 0 || restaurant.rating > 0) && (
+                                <div className="d-flex align-items-center">
+                                    <span className="me-1" style={{ 
+                                        color: (ratingStats.rating || restaurant.rating) 
+                                            ? (parseFloat(ratingStats.rating || restaurant.rating) >= 4.0 
+                                                ? "#28a745" 
+                                                : parseFloat(ratingStats.rating || restaurant.rating) >= 3.0 
+                                                    ? "#ffc107" 
+                                                    : "#dc3545") 
+                                            : "#000", 
+                                        fontWeight: "600" 
+                                    }}>
+                                        {(ratingStats.rating || restaurant.rating).toFixed(1)}
+                                    </span>
+                                    <i className="bi bi-star-fill me-1" style={{ 
+                                        color: (ratingStats.rating || restaurant.rating) 
+                                            ? (parseFloat(ratingStats.rating || restaurant.rating) >= 4.0 
+                                                ? "#28a745" 
+                                                : parseFloat(ratingStats.rating || restaurant.rating) >= 3.0 
+                                                    ? "#ffc107" 
+                                                    : "#dc3545") 
+                                            : "#000", 
+                                        fontSize: "0.85rem" 
+                                    }}></i>
                                     {(ratingStats.ratingCount > 0 || restaurant.ratingCount > 0) && (
-                                        <span className="text-muted ms-1">({ratingStats.ratingCount || restaurant.ratingCount})</span>
+                                        <span className="text-muted" style={{ fontSize: "0.85rem" }}>
+                                            ({ratingStats.ratingCount || restaurant.ratingCount})
+                                        </span>
                                     )}
-                                </p>
+                                </div>
                             )}
                         </div>
                         <p className="my-2 fst-italic text-muted">{restaurant.description}</p>
@@ -799,82 +898,147 @@ const RestaurantDetail = () => {
                     )}
                 </div>
                 
-                <div className="row g-4 mb-5">
-                    {restaurant.dishes && restaurant.dishes.length > 0 ? (
-                        restaurant.dishes.map((dish) => (
-                            <div key={dish.id} className="col-md-6">
-                                <div 
-                                    className="card border-1 h-100 rounded-4 overflow-hidden" 
-                                    style={{ cursor: 'pointer' }}
-                                    onClick={() => handleDishClick(dish)}
+                {/* Dish Section */}
+                <div className="container py-2" id="menuSection">                    
+                    {/* Category Filter Dropdown */}
+                    {getUniqueCategories().length > 0 && (
+                        <div className="d-flex align-items-center mb-4">
+                            <label className="me-2 text-muted">Filter by category:</label>
+                            <select 
+                                className="form-select form-select-sm rounded-pill"
+                                value={categoryFilter}
+                                onChange={(e) => setCategoryFilter(e.target.value)}
+                                style={{ 
+                                    width: "auto",
+                                    border: "1px solid #dee2e6",
+                                    boxShadow: "none",
+                                    padding: "0.25rem 2rem 0.25rem 0.75rem",
+                                    cursor: "pointer",
+                                    display: "inline-block"
+                                }}
+                            >
+                                <option value="all">All Categories</option>
+                                {getUniqueCategories().map(category => (
+                                    <option key={category} value={category}>
+                                        {category.charAt(0).toUpperCase() + category.slice(1).toLowerCase()}
+                                    </option>
+                                ))}
+                            </select>
+                            {categoryFilter !== 'all' && (
+                                <button 
+                                    className="ms-3 btn btn-link p-0 text-success fw-medium"
+                                    style={{ textDecoration: 'underline', fontSize: '0.9rem' }}
+                                    onClick={() => setCategoryFilter('all')}
                                 >
-                                    <div className="row g-0 h-100">
-                                        <div className="col-8">
-                                            <div className="card-body d-flex flex-column h-100">
-                                                <h5 className="card-title">{dish.name}</h5>
-                                                <p className="card-text">{getDishPriceDisplay(dish)}</p>
-                                                <p className="card-text text-muted">{dish.description}</p>
+                                    Clear Filter
+                                </button>
+                            )}
+                        </div>
+                    )}
+                    
+                    <div className="row g-4 mb-5">
+                        {getFilteredDishes().length > 0 ? (
+                            getFilteredDishes().map((dish) => (
+                                <div key={dish.id} className="col-md-6">
+                                    <div 
+                                        className="card border-1 h-100 rounded-4 overflow-hidden" 
+                                        style={{ cursor: 'pointer' }}
+                                        onClick={() => handleDishClick(dish)}
+                                    >
+                                        <div className="row g-0 h-100">
+                                            <div className="col-8">
+                                                <div className="card-body d-flex flex-column h-100">
+                                                    <h5 className="card-title">{dish.name}</h5>
+                                                    <p className="card-text">{getDishPriceDisplay(dish)}</p>
+                                                    <p className="card-text text-muted">{dish.description}</p>
+                                                </div>
                                             </div>
-                                        </div>
-                                        <div className="col-4 position-relative">
-                                            <img 
-                                                src={dish.imageUrl || DEFAULT_IMAGE_PLACEHOLDER}
-                                                className="img-fluid h-100" 
-                                                alt={dish.name} 
-                                                style={{ 
-                                                    objectFit: "cover",
-                                                    height: "100%",
-                                                    width: "100%"
-                                                }} 
-                                                onError={(e) => {
-                                                    e.target.onerror = null;
-                                                    e.target.src = DEFAULT_IMAGE_PLACEHOLDER;
-                                                }}
-                                            />
-                                            <button 
-                                                className="btn btn-light rounded-circle position-absolute d-flex align-items-center justify-content-center"
-                                                style={{ 
-                                                    bottom: "10px", 
-                                                    right: "10px",
-                                                    width: "40px",
-                                                    height: "40px",
-                                                    boxShadow: "0 2px 5px rgba(0,0,0,0.2)"
-                                                }}
-                                                onClick={() => handleDishClick(dish)}
-                                            >
-                                                <i className="bi bi-plus fw-bold" style={{ 
-                                                    fontSize: "28px",
-                                                    fontWeight: "900",
-                                                    marginTop: "-2px"  // Optical centering
-                                                }}></i>
-                                            </button>
+                                            <div className="col-4 position-relative">
+                                                <img 
+                                                    src={dish.imageUrl || DEFAULT_IMAGE_PLACEHOLDER}
+                                                    className="img-fluid h-100" 
+                                                    alt={dish.name} 
+                                                    style={{ 
+                                                        objectFit: "cover",
+                                                        height: "100%",
+                                                        width: "100%"
+                                                    }} 
+                                                    onError={(e) => {
+                                                        e.target.onerror = null;
+                                                        e.target.src = DEFAULT_IMAGE_PLACEHOLDER;
+                                                    }}
+                                                />
+                                                <button 
+                                                    className="btn btn-light rounded-circle position-absolute d-flex align-items-center justify-content-center"
+                                                    style={{ 
+                                                        bottom: "10px", 
+                                                        right: "10px",
+                                                        width: "40px",
+                                                        height: "40px",
+                                                        boxShadow: "0 2px 5px rgba(0,0,0,0.2)"
+                                                    }}
+                                                    onClick={() => handleDishClick(dish)}
+                                                >
+                                                    <i className="bi bi-plus fw-bold" style={{ 
+                                                        fontSize: "28px",
+                                                        fontWeight: "900",
+                                                        marginTop: "-2px"  // Optical centering
+                                                    }}></i>
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
+                            ))
+                        ) : (
+                            <div className="col-12">
+                                <div className="alert alert-light w-75">
+                                    {restaurant.dishes && restaurant.dishes.length > 0 
+                                        ? "No available dishes. Please check back later." 
+                                        : "No dishes are currently available for this restaurant."}
+                                </div>
                             </div>
-                        ))
-                    ) : (
-                        <div className="col-12">
-                            <div className="alert alert-info">
-                                No dishes available for this restaurant.
-                            </div>
-                        </div>
-                    )}
+                        )}
+                    </div>
                 </div>
             </div>
             
             {/* Reviews Section */}
-            <div className="container mt-4 mb-5">
+            <div className="container mt-4 mb-5" id="ratingSection">
                 <h3 className="mb-4 fw-bold">Ratings & Reviews</h3>
                 <div className="d-flex align-items-center justify-content-between mb-3">
                     <div className="d-flex align-items-center">
-                        <p className="d-flex align-items-center mb-0 me-3">
-                    <i className="bi bi-star-fill me-1" style={{ color: "#000", fontSize: "0.85rem" }}></i>
-                            <span>{ratingStats.rating || restaurant.rating}</span>
+                        <div className="d-flex align-items-center me-3">
+                            <span className="me-1" style={{ 
+                                color: (ratingStats.rating || restaurant.rating) 
+                                    ? (parseFloat(ratingStats.rating || restaurant.rating) >= 4.0 
+                                        ? "#28a745" 
+                                        : parseFloat(ratingStats.rating || restaurant.rating) >= 3.0 
+                                            ? "#ffc107" 
+                                            : "#dc3545") 
+                                    : "#000", 
+                                fontWeight: "600" 
+                            }}>
+                                {((ratingStats.rating || restaurant.rating) > 0 
+                                    ? (ratingStats.rating || restaurant.rating).toFixed(1) 
+                                    : 'N/A')}
+                            </span>
+                            <i className="bi bi-star-fill me-1" style={{ 
+                                color: (ratingStats.rating || restaurant.rating) 
+                                    ? (parseFloat(ratingStats.rating || restaurant.rating) >= 4.0 
+                                        ? "#28a745" 
+                                        : parseFloat(ratingStats.rating || restaurant.rating) >= 3.0 
+                                            ? "#ffc107" 
+                                            : "#dc3545") 
+                                    : "#000", 
+                                fontSize: "0.85rem" 
+                            }}></i>
                             {(ratingStats.ratingCount > 0 || restaurant.ratingCount > 0) && (
-                                <span className="text-muted ms-1">({ratingStats.ratingCount || restaurant.ratingCount})</span>
+                                <span className="text-muted" style={{ fontSize: "0.85rem" }}>
+                                    ({ratingStats.ratingCount || restaurant.ratingCount})
+                                </span>
                             )}
-                        </p>
+                        </div>
                         
                         {/* Sort Dropdown - Update to match CustomerOrders.jsx styling */}
                         {ratings && ratings.length > 1 && (
@@ -951,7 +1115,7 @@ const RestaurantDetail = () => {
                 
                 {ratingsStatus === 'loading' && (
                     <div className="d-flex justify-content-center my-4">
-                        <div className="spinner-border text-dark" role="status">
+                        <div className="spinner-border text-success" role="status">
                             <span className="visually-hidden">Loading reviews...</span>
                         </div>
                     </div>
@@ -966,7 +1130,7 @@ const RestaurantDetail = () => {
                 {ratingsStatus === 'succeeded' && (
                     <>
                         {ratings.length === 0 ? (
-                            <div className="alert alert-info">
+                            <div className="alert alert-light">
                                 No reviews yet for this restaurant.
                             </div>
                         ) : (
@@ -1151,8 +1315,7 @@ const RestaurantDetail = () => {
                 size="lg"
                 contentClassName="rounded-4 border-0 py-2 px-3"
             >
-                <Modal.Header closeButton className="border-0 pt-4 pb-0">
-                    <h5 className="m-0 fs-4 fw-bold">{selectedDish?.name}</h5>
+                <Modal.Header closeButton className="border-0 pt-3 pb-0">
                 </Modal.Header>
                 <Modal.Body>
                     <style>
@@ -1185,8 +1348,8 @@ const RestaurantDetail = () => {
                             />
                         </div>
                         <div className="col-md-6">
-                            <p className="text-muted mb-2">{selectedDish?.description}</p>
-                            
+                            <h5 className="m-0 mb-2 fs-4 fw-bold">{selectedDish?.name}</h5>
+                            <p className="text-muted mb-2">{selectedDish?.description}</p>   
                             {/* Ingredients Section */}
                             {selectedDish?.ingredients && selectedDish.ingredients.length > 0 && (
                                 <div className="mb-3">
@@ -1237,7 +1400,10 @@ const RestaurantDetail = () => {
                                     </div>
                                 ) : (
                                     <p className="mb-3">
-                                        Size: {selectedDish?.sizes && selectedDish.sizes.length > 0 ? selectedDish.sizes[0].size : 'Standard'}
+                                        <div className="d-flex justify-content-between">
+                                            <span>{selectedDish?.sizes && selectedDish.sizes.length > 0 ? selectedDish.sizes[0].size : 'Standard'}</span>
+                                            <span>${selectedDish?.sizes && selectedDish.sizes.length > 0 ? selectedDish.sizes[0].price.toFixed(2) : 'N/A'}</span>
+                                        </div>
                                     </p>
                                 )}
                             </div>
@@ -1276,6 +1442,19 @@ const RestaurantDetail = () => {
                     >
                         Add {quantity} to cart for ${selectedSize ? (selectedSize.price * quantity).toFixed(2) : '0.00'}
                     </Button>
+                </Modal.Footer>
+            </Modal>
+            
+            {/* Modal to confirm new order when switching restaurants */}
+            <Modal show={showSwitchModal} onHide={() => setShowSwitchModal(false)}>
+                <Modal.Header closeButton>
+                    <Modal.Title>Do you want to create a new order?</Modal.Title>
+                </Modal.Header>
+                <Modal.Body>
+                    Your order contains items from {oldRestaurantName || 'another restaurant'}. Create a new order to add items from {restaurant.name}?
+                </Modal.Body>
+                <Modal.Footer>
+                    <Button variant="primary" onClick={handleConfirmSwitch}>Yes</Button>
                 </Modal.Footer>
             </Modal>
             

@@ -64,28 +64,20 @@ const ImageDisplay = () => {
   const isCustomerAuthenticated = useSelector((state) => state.auth.isCustomerAuthenticated);
   const customer = useSelector((state) => state.auth.customer);
   const restaurant = useSelector((state) => state.auth.restaurant);
+  const profileCustomer = useSelector((state) => state.customer.customer);
   const navigate = useNavigate();
   
   useEffect(() => {
-    // For customer profile picture
-    if (isCustomerAuthenticated && customer) {
-      if (customer.imageUrl) {
-        setImageUrl(customer.imageUrl);
-      } else {
-        setImageUrl(DEFAULT_PROFILE_IMAGE);
-      }
-    } 
-    // For restaurant profile picture
-    else if (isRestaurantAuthenticated && restaurant) {
-      if (restaurant.imageUrl) {
-        setImageUrl(restaurant.imageUrl);
-      } else {
-        setImageUrl(DEFAULT_IMAGE_PLACEHOLDER);
-      }
+    if (isCustomerAuthenticated) {
+      // prefer updated image from profileCustomer slice
+      const src = profileCustomer?.imageUrl || customer?.imageUrl || DEFAULT_PROFILE_IMAGE;
+      setImageUrl(src);
+    } else if (isRestaurantAuthenticated && restaurant) {
+      setImageUrl(restaurant.imageUrl || DEFAULT_IMAGE_PLACEHOLDER);
     } else {
       setImageUrl(DEFAULT_PROFILE_IMAGE);
     }
-  }, [isCustomerAuthenticated, isRestaurantAuthenticated, customer, restaurant]);
+  }, [isCustomerAuthenticated, isRestaurantAuthenticated, customer, restaurant, profileCustomer]);
 
   return (
     <div className="profile-image-container">
@@ -184,7 +176,7 @@ const NavSidebar = ({ hideToggle = false }) => {
           </Link>
           
           {/* Add the pill toggle next to UberEats text, but hide it on restaurant detail pages */}
-          {isCustomerAuthenticated && !shouldHideToggle && (
+          {!shouldHideToggle && (
             <div className="pill-toggle ms-3" data-active={orderPreference} onClick={toggleOrderPreference}>
               <div className={`pill-toggle-option ${orderPreference === "pickup" ? "active" : ""}`}>
                 Pickup
@@ -246,16 +238,9 @@ const NavSidebar = ({ hideToggle = false }) => {
           <>
             {/* Edit Profile Button */}
             {isCustomerAuthenticated && customer && (
-              <Link to={`/customer/profile/${customer.id}`}>
+              <Link to={`/customer/profile`}>
                 <button className="btn btn-outline-dark mt-2 w-100">
                   Manage Profile
-                </button>
-              </Link>
-            )}
-            {isRestaurantAuthenticated && (
-              <Link to={`/restaurant/profile/${restaurantId}`}>
-                <button className="btn btn-outline-dark mt-2 w-100">
-                  Edit Profile
                 </button>
               </Link>
             )}

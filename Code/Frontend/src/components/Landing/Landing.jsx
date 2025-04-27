@@ -7,8 +7,8 @@ import "./Landing.css";
 import Navbar from "../Common/Navbar";
 
 const LandingPage = () => {
-  // Get customer authentication state from Redux
-  const { customer } = useSelector((state) => state.auth);
+  // Get authentication state from Redux
+  const { customer, isRestaurantAuthenticated, restaurant } = useSelector((state) => state.auth);
   
   return (
     <div className="position-relative min-vh-100 w-100 bg-light home_bg">
@@ -31,11 +31,21 @@ const LandingPage = () => {
                 </div>
                 <button className="btn btn-dark ms-2 rounded-1 p-2 w-25">Search here</button>
             </div> */}
-            <Link to="/restaurants">
-              <button className="btn btn-light rounded-pill px-4 py-3 w-100 fw-bold">
-                {customer ? "Explore" : "Explore as Guest"}
-              </button>
-            </Link>
+            <div className="d-flex gap-3">
+              <Link to="/restaurants">
+                <button className="btn btn-light rounded-pill px-4 py-3 fw-bold">
+                  {customer ? "Explore" : "Explore as Guest"}
+                </button>
+              </Link>
+              
+              {isRestaurantAuthenticated && (
+                <Link to="/restaurant/dashboard">
+                  <button className="btn btn-dark rounded-pill px-4 py-3 fw-bold">
+                    Manage your Restaurant
+                  </button>
+                </Link>
+              )}
+            </div>
       </div>
     </div>
   );

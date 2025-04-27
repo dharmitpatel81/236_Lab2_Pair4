@@ -10,12 +10,10 @@ html, body, #root {
 .card {
   transform: none !important;
   transition: none !important;
-  box-shadow: none !important;
 }
 
 .card:hover {
   transform: none !important;
-  box-shadow: none !important;
   transition: none !important;
 }
 

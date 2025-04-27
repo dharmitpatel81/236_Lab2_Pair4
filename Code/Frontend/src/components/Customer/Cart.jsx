@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { Link, useNavigate } from 'react-router-dom';
 import { resetOrderStatus } from "../../redux/slices/customer/orderSlice";
@@ -9,7 +9,8 @@ import {
     selectCartTotal,
     setOrderPreference,
     selectOrderPreference,
-    updateItemSize
+    updateItemSize,
+    updateCartItemCategory
 } from '../../redux/slices/customer/cartSlice';
 import { placeOrder } from '../../redux/slices/customer/orderSlice'
 import { addAddress } from '../../redux/slices/customer/addressSlice';
@@ -235,6 +236,20 @@ const Cart = () => {
         offersPickup: true 
     });
 
+    const isOpenNow = useMemo(() => {
+        if (!restaurant?.operatingHours) return false;
+        const now = new Date();
+        const day = now.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+        const hours = restaurant.operatingHours[day];
+        if (!hours || hours.isClosed || !hours.open || !hours.close) return false;
+        const [oh, om] = hours.open.split(':').map(Number);
+        const [ch, cm] = hours.close.split(':').map(Number);
+        const currentMinutes = now.getHours() * 60 + now.getMinutes();
+        const openMinutes = oh * 60 + om;
+        const closeMinutes = ch * 60 + cm;
+        return currentMinutes >= openMinutes && currentMinutes < closeMinutes;
+    }, [restaurant?.operatingHours]);
+
     const [customerNote, setCustomerNote] = useState("");
 
     const addressScrollContainerRef = useRef(null);
@@ -447,6 +462,11 @@ const Cart = () => {
 
         if (!restaurantId) {
             setError('Restaurant information not available');
+            return;
+        }
+
+        if (!isOpenNow) {
+            setError('Restaurant is currently closed');
             return;
         }
 
@@ -791,6 +811,34 @@ const Cart = () => {
                     if (fullDish && fullDish.sizes && fullDish.sizes.length > 1) {
                         dishSizesMap[item.id] = fullDish.sizes;
                     }
+                    
+                    // Ensure item.category is an array, not a string
+                    if (item.category && typeof item.category === 'string') {
+                        // If the category is a string that looks like an array in string form
+                        if (item.category.includes('[') && item.category.includes(']')) {
+                            try {
+                                // Convert string representation of array to actual array
+                                const categoryArray = JSON.parse(item.category.replace(/'/g, '"'));
+                                // Modify the item in the Redux store to ensure category is an array
+                                dispatch(updateCartItemCategory({ 
+                                    id: item.id, 
+                                    category: Array.isArray(categoryArray) ? categoryArray : [categoryArray]
+                                }));
+                            } catch (e) {
+                                // If parsing fails, use the string as a single element in an array
+                                dispatch(updateCartItemCategory({ 
+                                    id: item.id, 
+                                    category: [item.category]
+                                }));
+                            }
+                        } else {
+                            // If it's just a plain string, convert to array with single element
+                            dispatch(updateCartItemCategory({ 
+                                id: item.id, 
+                                category: [item.category]
+                            }));
+                        }
+                    }
                 });
                 
                 setDishSizes(dishSizesMap);
@@ -800,7 +848,7 @@ const Cart = () => {
         };
         
         fetchFullDishData();
-    }, [restaurantId, cartItems]);
+    }, [restaurantId, cartItems, dispatch]);
     
     // Add a handler for size change
     const handleSizeChange = (itemId, newSizeId) => {
@@ -834,9 +882,9 @@ const Cart = () => {
             <>
                 <NavbarDark />
                 <div className="container mt-5 text-center">
-                    <h2 className="mb-4">Your Cart is Empty</h2>
+                    <h2 className="mb-4"><i className="bi bi-exclamation-circle"></i> Your Cart is Empty</h2>
                     <div className="d-flex justify-content-center">
-                        <Link to="/restaurants" className="btn btn-outline-dark rounded-pill px-4 py-2">
+                        <Link to="/restaurants" className="text-dark fw-medium" style={{ textDecoration: 'underline' }}>
                         Browse Restaurants
                     </Link>
                     </div>
@@ -1161,21 +1209,25 @@ const Cart = () => {
                                     <h5 className="fw-bold">Total</h5>
                                     <h5 className="fw-bold">${(parseFloat(quoteData.totalAmount) || 0).toFixed(2)}</h5>
                                 </div>
-                                
-                                <button 
-                                    className="btn btn-dark w-100 py-2 rounded-pill"
-                                    onClick={handlePlaceOrder}
-                                    disabled={orderStatus === 'loading'}
+                                {!isOpenNow ? (
+                                    <div className="text-danger fst-italic mb-1">
+                                        Restaurant is closed
+                                    </div> 
+                                ) : (<></>)}
+                                    <button 
+                                        className="btn btn-dark w-100 py-2 rounded-pill"
+                                        onClick={handlePlaceOrder}
+                                    disabled={orderStatus === 'loading' || !isOpenNow}
                                 >
                                     {orderStatus === 'loading' ? 
                                         <span>
-                                            <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                            <span className="spinner-border spinner-border-sm text-light me-2" role="status" aria-hidden="true"></span>
                                             Processing...
                                         </span> : 
                                         'Place Order'
                                     }
                                 </button>
-                                
+    
                                 {!isCustomerAuthenticated && (
                                     <div className="alert alert-danger mt-3 mb-0 py-2 text-center">
                                         You need to log in to place an order
@@ -1191,12 +1243,12 @@ const Cart = () => {
             {showAddressForm && (
                 <div className="modal d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }} tabIndex="-1">
                     <div className="modal-dialog modal-dialog-centered">
-                        <div className="modal-content rounded-4">
+                        <div className="modal-content rounded-4 px-3 py-1">
                             <div className="modal-header">
-                                <h5 className="modal-title">Add New Address</h5>
+                                <h5 className="modal-title fw-semibold">Add New Address</h5>
                                 <button type="button" className="btn-close" onClick={cancelAddressForm}></button>
-            </div>
-                            <div className="modal-body">
+                            </div>
+                            <div className="modal-body my-1">
                                 {/* Display form error if any */}
                                 {addressFormError && (
                                     <div className="alert alert-danger">{addressFormError}</div>
@@ -1259,7 +1311,8 @@ const Cart = () => {
                                                     {/* Country Suggestions Dropdown */}
                                                     {showCountrySuggestions && countrySuggestions.length > 0 && (
                                                         <div className="position-absolute w-100 mt-1 shadow-sm bg-white border rounded-2" 
-                                                            style={{ maxHeight: '200px', overflowY: 'auto', zIndex: 1000 }}>
+                                                            style={{ maxHeight: '200px', overflowY: 'auto', zIndex: 1000 }}
+                                                        >
                                                             {countrySuggestions.map((country, index) => (
                                                                 <div 
                                                                     key={index} 
@@ -1304,14 +1357,15 @@ const Cart = () => {
                                                     />
                                                     {loadingStates && (
                                                         <div className="position-absolute" style={{ right: '10px', top: '10px' }}>
-                                                            <span className="spinner-border spinner-border-sm text-secondary" role="status"></span>
+                                                            <span className="spinner-border spinner-border-sm text-success" role="status"></span>
                                                         </div>
                                                     )}
                                                     
                                                     {/* State Suggestions Dropdown */}
                                                     {showStateSuggestions && stateSuggestions.length > 0 && (
                                                         <div className="position-absolute w-100 mt-1 shadow-sm bg-white border rounded-2" 
-                                                            style={{ maxHeight: '200px', overflowY: 'auto', zIndex: 1000 }}>
+                                                            style={{ maxHeight: '200px', overflowY: 'auto', zIndex: 1000 }}
+                                                        >
                                                             {stateSuggestions.map((state, index) => (
                                                                 <div 
                                                                     key={index} 
@@ -1355,14 +1409,15 @@ const Cart = () => {
                                                     />
                                                     {loadingCities && (
                                                         <div className="position-absolute" style={{ right: '10px', top: '10px' }}>
-                                                            <span className="spinner-border spinner-border-sm text-secondary" role="status"></span>
+                                                            <span className="spinner-border spinner-border-sm text-success" role="status"></span>
                                                         </div>
                                                     )}
                                                     
                                                     {/* City Suggestions Dropdown */}
                                                     {showCitySuggestions && citySuggestions.length > 0 && (
                                                         <div className="position-absolute w-100 mt-1 shadow-sm bg-white border rounded-2" 
-                                                            style={{ maxHeight: '200px', overflowY: 'auto', zIndex: 1000 }}>
+                                                            style={{ maxHeight: '200px', overflowY: 'auto', zIndex: 1000 }}
+                                                        >
                                                             {citySuggestions.map((city, index) => (
                                                                 <div 
                                                                     key={index} 
@@ -1424,7 +1479,7 @@ const Cart = () => {
                                         >
                                             {addressLoading ? (
                                                 <>
-                                                    <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                                    <span className="spinner-border spinner-border-sm me-2 text-success" role="status" aria-hidden="true"></span>
                                                     Saving...
                                                 </>
                                             ) : "Save Address"}

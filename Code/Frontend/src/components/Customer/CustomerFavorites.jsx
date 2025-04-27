@@ -145,7 +145,7 @@ const CustomerFavorites = () => {
                 {/* Show loading state */}
                 {(favoritesStatus === "loading" || loading) && (
                     <div className="text-center py-3">
-                        <div className="spinner-border text-dark me-2" role="status"></div>
+                        <div className="spinner-border text-success me-2" role="status"></div>
                     </div>
                 )}
 

@@ -5,6 +5,7 @@ import axios from "../../config/axios";
 import { useDispatch, useSelector, shallowEqual } from "react-redux";
 import { createCustomer, clearCustomerError } from "../../redux/slices/customer/customerSlice";
 import NavbarDark from "../Common/NavbarDark";
+import Card from 'react-bootstrap/Card';
 import { validateEmail, validatePhone, validateName } from "../../utils/validation";
 
 const CustomerSignup = () => {
@@ -552,7 +553,7 @@ const CustomerSignup = () => {
     };
 
     return (
-        <div className="container-fluid px-0">
+        <div className="container-fluid px-4">
             <NavbarDark />
             <button
                 className="btn text-dark border-0 d-flex align-items-center mt-3 ms-3 fw-bold"
@@ -561,458 +562,459 @@ const CustomerSignup = () => {
             >
                 <span className="fs-5 me-1">←</span><u>Back</u>
             </button>
-            <h3 className="text-center mt-4 mb-4 fw-bold">Create an Account</h3>
-
-            {validationErrors.submit && (
-                <div className="alert alert-danger mx-auto" style={{ maxWidth: "500px" }}>
+            <Card className="mx-auto mt-4 mb-4 shadow-sm rounded-4 border-2 border-light p-4" style={{ maxWidth: '900px', width: '100%' }}>
+              <Card.Body>
+                <h3 className="text-center mt-2 mb-4 fw-bold">Create an Account</h3>
+                {validationErrors.submit && (
+                  <div className="alert alert-danger mb-3" style={{ width: '100%' }}>
                     {validationErrors.submit}
-                </div>
-            )}
-
-            {success && (
-                <div className="alert alert-success mx-auto" style={{ maxWidth: "500px" }}>
+                  </div>
+                )}
+                {success && (
+                  <div className="alert alert-success mb-3" style={{ width: '100%' }}>
                     Account created successfully! Redirecting to login...
-                </div>
-            )}
-
-            <form onSubmit={handleSubmit} className="w-50 mx-auto">
-                <div className="text-center mb-4">
-                    <div 
-                        className="position-relative d-inline-block"
-                        style={{ cursor: 'pointer' }}
-                        onClick={handleImageClick}
-                    >
+                  </div>
+                )}
+                <form onSubmit={handleSubmit}>
+                    <div className="text-center mb-4">
                         <div 
-                            className="rounded-circle overflow-hidden"
-                            style={{
-                                width: '90px',
-                                height: '90px',
-                                border: '2px solid #dee2e6',
-                                backgroundColor: '#f8f9fa'
-                            }}
+                            className="position-relative d-inline-block"
+                            style={{ cursor: 'pointer' }}
+                            onClick={handleImageClick}
                         >
-                            {previewImage ? (
-                                <img
-                                    src={previewImage}
-                                    alt="Profile preview"
-                                    style={{
-                                        width: '100%',
-                                        height: '100%',
-                                        objectFit: 'cover'
-                                    }}
-                                />
-                            ) : (
-                                <div className="d-flex align-items-center justify-content-center h-100">
-                                    <i className="bi bi-person-circle" style={{ fontSize: '3rem', color: '#dee2e6' }}></i>
-                                </div>
-                            )}
-                        </div>
-                        <div 
-                            className="position-absolute bottom-0 end-0 bg-white rounded-circle shadow-sm d-flex align-items-center justify-content-center"
-                            style={{
-                                width: '30px',
-                                height: '30px',
-                                border: '2px solid #dee2e6'
-                            }}
-                        >
-                            <i className="bi bi-pencil-fill text-dark" style={{ fontSize: '0.8rem' }}></i>
-                        </div>
-                        {previewImage && (
                             <div 
-                                className="position-absolute top-0 end-0"
-                                style={{ marginTop: '-10px', marginRight: '-10px' }}
-                                onClick={handleRemoveImage}
+                                className="rounded-circle overflow-hidden"
+                                style={{
+                                    width: '90px',
+                                    height: '90px',
+                                    border: '2px solid #dee2e6',
+                                    backgroundColor: '#f8f9fa'
+                                }}
                             >
-                                <button 
-                                    type="button" 
-                                    className="btn btn-sm btn-danger rounded-circle"
-                                    style={{ width: '24px', height: '24px', padding: '0', fontSize: '12px', lineHeight: '1' }}
-                                    title="Remove image"
+                                {previewImage ? (
+                                    <img
+                                        src={previewImage}
+                                        alt="Profile preview"
+                                        style={{
+                                            width: '100%',
+                                            height: '100%',
+                                            objectFit: 'cover'
+                                        }}
+                                    />
+                                ) : (
+                                    <div className="d-flex align-items-center justify-content-center h-100">
+                                        <i className="bi bi-person-circle" style={{ fontSize: '3rem', color: '#dee2e6' }}></i>
+                                    </div>
+                                )}
+                            </div>
+                            <div 
+                                className="position-absolute bottom-0 end-0 bg-white rounded-circle shadow-sm d-flex align-items-center justify-content-center"
+                                style={{
+                                    width: '30px',
+                                    height: '30px',
+                                    border: '2px solid #dee2e6'
+                                }}
+                            >
+                                <i className="bi bi-pencil-fill text-dark" style={{ fontSize: '0.8rem' }}></i>
+                            </div>
+                            {previewImage && (
+                                <div 
+                                    className="position-absolute top-0 end-0"
+                                    style={{ marginTop: '-10px', marginRight: '-10px' }}
+                                    onClick={handleRemoveImage}
                                 >
-                                    &times;
-                                </button>
-                            </div>
-                        )}
-                    </div>
-                    <input
-                        type="file"
-                        ref={fileInputRef}
-                        onChange={handleFileChange}
-                        accept="image/*"
-                        className="d-none"
-                    />
-                    <p className="text-muted mt-2 mb-0">Click to upload profile picture (optional)</p>
-                </div>
-
-                <div className="row">
-                    <div className="col-md-6">
-                        <div className="mb-3">
-                            <label htmlFor="firstName">First Name <span className="text-danger">*</span></label>
-                            <input 
-                                type="text" 
-                                className={`form-control ${validationErrors.firstName ? 'is-invalid' : ''}`}
-                                name="firstName" 
-                                value={customer.firstName} 
-                                onChange={handleChange} 
-                                required 
-                            />
-                            {validationErrors.firstName && (
-                                <div className="invalid-feedback">{validationErrors.firstName}</div>
-                            )}
-                        </div>
-                        <div className="mb-3">
-                            <label htmlFor="lastName">Last Name <span className="text-danger">*</span></label>
-                            <input 
-                                type="text" 
-                                className={`form-control ${validationErrors.lastName ? 'is-invalid' : ''}`}
-                                name="lastName" 
-                                value={customer.lastName} 
-                                onChange={handleChange} 
-                                required 
-                            />
-                            {validationErrors.lastName && (
-                                <div className="invalid-feedback">{validationErrors.lastName}</div>
-                            )}
-                        </div>
-                        <div className="mb-3">
-                            <label htmlFor="email">Email <span className="text-danger">*</span></label>
-                            <input 
-                                type="email" 
-                                className={`form-control ${validationErrors.email ? 'is-invalid' : ''}`}
-                                name="email" 
-                                value={customer.email} 
-                                onChange={handleChange} 
-                                autoComplete="username" 
-                                required 
-                            />
-                            {validationErrors.email && (
-                                <div className="invalid-feedback">{validationErrors.email}</div>
-                            )}
-                        </div>
-                        <div className="mb-3">
-                            <label htmlFor="phone">Phone <span className="text-danger">*</span></label>
-                            <input 
-                                type="tel" 
-                                className={`form-control ${validationErrors.phone ? 'is-invalid' : ''}`}
-                                name="phone" 
-                                value={customer.phone} 
-                                onChange={handleChange} 
-                                pattern="^\+?\d{10,15}$"
-                                placeholder="+1234567890"
-                                inputMode="tel"
-                                required 
-                            />
-                            {validationErrors.phone && (
-                                <div className="invalid-feedback">{validationErrors.phone}</div>
-                            )}
-                        </div>
-                        <div className="mb-3">
-                            <label htmlFor="password">Password <span className="text-danger">*</span></label>
-                            <input 
-                                type="password" 
-                                className={`form-control ${validationErrors.password ? 'is-invalid' : passwordCriteria.length ? 'is-valid' : ''}`}
-                                name="password" 
-                                value={customer.password} 
-                                onChange={handleChange} 
-                                autoComplete="current-password" 
-                                required 
-                            />
-                            <div className="password-criteria mt-2">
-                                <small className={`d-block ${passwordCriteria.length ? 'text-success' : 'text-muted'}`}>
-                                    <i className={`bi ${passwordCriteria.length ? 'bi-check-circle-fill' : 'bi-circle'}`}></i> At least 6 characters
-                                </small>
-                                <small className={`d-block ${passwordCriteria.uppercase ? 'text-success' : 'text-muted'}`}>
-                                    <i className={`bi ${passwordCriteria.uppercase ? 'bi-check-circle-fill' : 'bi-circle'}`}></i> One uppercase letter
-                                </small>
-                                <small className={`d-block ${passwordCriteria.lowercase ? 'text-success' : 'text-muted'}`}>
-                                    <i className={`bi ${passwordCriteria.lowercase ? 'bi-check-circle-fill' : 'bi-circle'}`}></i> One lowercase letter
-                                </small>
-                                <small className={`d-block ${passwordCriteria.number ? 'text-success' : 'text-muted'}`}>
-                                    <i className={`bi ${passwordCriteria.number ? 'bi-check-circle-fill' : 'bi-circle'}`}></i> One number
-                                </small>
-                                <small className={`d-block ${passwordCriteria.special ? 'text-success' : 'text-muted'}`}>
-                                    <i className={`bi ${passwordCriteria.special ? 'bi-check-circle-fill' : 'bi-circle'}`}></i> One special character
-                                </small>
-                            </div>
-                            {validationErrors.password && (
-                                <div className="invalid-feedback">{validationErrors.password}</div>
-                            )}
-                        </div>
-                        <div className="mb-3">
-                            <label htmlFor="dateOfBirth">Date of Birth <span className="text-danger">*</span></label>
-                            <input 
-                                type="date" 
-                                className={`form-control ${validationErrors.dateOfBirth ? 'is-invalid' : ''}`}
-                                name="dateOfBirth" 
-                                value={customer.dateOfBirth} 
-                                onChange={handleChange} 
-                                max={new Date().toISOString().split('T')[0]}  // Prevents future dates
-                                required 
-                                style={{ colorScheme: 'light' }}
-                            />
-                            {validationErrors.dateOfBirth && (
-                                <div className="invalid-feedback d-block">
-                                    {validationErrors.dateOfBirth}
+                                    <button 
+                                        type="button" 
+                                        className="btn btn-sm btn-danger rounded-circle"
+                                        style={{ width: '24px', height: '24px', padding: '0', fontSize: '12px', lineHeight: '1' }}
+                                        title="Remove image"
+                                    >
+                                        &times;
+                                    </button>
                                 </div>
                             )}
                         </div>
+                        <input
+                            type="file"
+                            ref={fileInputRef}
+                            onChange={handleFileChange}
+                            accept="image/*"
+                            className="d-none"
+                        />
+                        <p className="text-muted mt-2 mb-0">Click to upload profile picture (optional)</p>
                     </div>
 
-                    <div className="col-md-6">
-                        <div className="mb-3">
+                    <div className="row">
+                        <div className="col-md-6">
                             <div className="mb-3">
-                                <label htmlFor="addressLabel">Address Label <span className="text-danger">*</span></label>
+                                <label htmlFor="firstName">First Name <span className="text-danger">*</span></label>
                                 <input 
                                     type="text" 
-                                    className={`form-control ${validationErrors.addressLabel ? 'is-invalid' : ''}`}
-                                    name="addressLabel" 
-                                    placeholder="Home"
-                                    value={customer.addresses[0].label} 
-                                    onChange={(e) => {
-                                        const newAddresses = [...customer.addresses];
-                                        // Always use "Home" if input is empty
-                                        newAddresses[0].label = e.target.value || "Home";
-                                        setCustomer({ ...customer, addresses: newAddresses });
+                                    className={`form-control ${validationErrors.firstName ? 'is-invalid' : ''}`}
+                                    name="firstName" 
+                                    value={customer.firstName} 
+                                    onChange={handleChange} 
+                                    required 
+                                />
+                                {validationErrors.firstName && (
+                                    <div className="invalid-feedback">{validationErrors.firstName}</div>
+                                )}
+                            </div>
+                            <div className="mb-3">
+                                <label htmlFor="lastName">Last Name <span className="text-danger">*</span></label>
+                                <input 
+                                    type="text" 
+                                    className={`form-control ${validationErrors.lastName ? 'is-invalid' : ''}`}
+                                    name="lastName" 
+                                    value={customer.lastName} 
+                                    onChange={handleChange} 
+                                    required 
+                                />
+                                {validationErrors.lastName && (
+                                    <div className="invalid-feedback">{validationErrors.lastName}</div>
+                                )}
+                            </div>
+                            <div className="mb-3">
+                                <label htmlFor="email">Email <span className="text-danger">*</span></label>
+                                <input 
+                                    type="email" 
+                                    className={`form-control ${validationErrors.email ? 'is-invalid' : ''}`}
+                                    name="email" 
+                                    value={customer.email} 
+                                    onChange={handleChange} 
+                                    autoComplete="username" 
+                                    required 
+                                />
+                                {validationErrors.email && (
+                                    <div className="invalid-feedback">{validationErrors.email}</div>
+                                )}
+                            </div>
+                            <div className="mb-3">
+                                <label htmlFor="phone">Phone <span className="text-danger">*</span></label>
+                                <input 
+                                    type="tel" 
+                                    className={`form-control ${validationErrors.phone ? 'is-invalid' : ''}`}
+                                    name="phone" 
+                                    value={customer.phone} 
+                                    onChange={handleChange} 
+                                    pattern="^\+?\d{10,15}$"
+                                    placeholder="+1234567890"
+                                    inputMode="tel"
+                                    required 
+                                />
+                                {validationErrors.phone && (
+                                    <div className="invalid-feedback">{validationErrors.phone}</div>
+                                )}
+                            </div>
+                            <div className="mb-3">
+                                <label htmlFor="password">Password <span className="text-danger">*</span></label>
+                                <input 
+                                    type="password" 
+                                    className={`form-control ${validationErrors.password ? 'is-invalid' : passwordCriteria.length ? 'is-valid' : ''}`}
+                                    name="password" 
+                                    value={customer.password} 
+                                    onChange={handleChange} 
+                                    autoComplete="current-password" 
+                                    required 
+                                />
+                                <div className="password-criteria mt-2">
+                                    <small className={`d-block ${passwordCriteria.length ? 'text-success' : 'text-muted'}`}>
+                                        <i className={`bi ${passwordCriteria.length ? 'bi-check-circle-fill' : 'bi-circle'}`}></i> At least 6 characters
+                                    </small>
+                                    <small className={`d-block ${passwordCriteria.uppercase ? 'text-success' : 'text-muted'}`}>
+                                        <i className={`bi ${passwordCriteria.uppercase ? 'bi-check-circle-fill' : 'bi-circle'}`}></i> One uppercase letter
+                                    </small>
+                                    <small className={`d-block ${passwordCriteria.lowercase ? 'text-success' : 'text-muted'}`}>
+                                        <i className={`bi ${passwordCriteria.lowercase ? 'bi-check-circle-fill' : 'bi-circle'}`}></i> One lowercase letter
+                                    </small>
+                                    <small className={`d-block ${passwordCriteria.number ? 'text-success' : 'text-muted'}`}>
+                                        <i className={`bi ${passwordCriteria.number ? 'bi-check-circle-fill' : 'bi-circle'}`}></i> One number
+                                    </small>
+                                    <small className={`d-block ${passwordCriteria.special ? 'text-success' : 'text-muted'}`}>
+                                        <i className={`bi ${passwordCriteria.special ? 'bi-check-circle-fill' : 'bi-circle'}`}></i> One special character
+                                    </small>
+                                </div>
+                                {validationErrors.password && (
+                                    <div className="invalid-feedback">{validationErrors.password}</div>
+                                )}
+                            </div>
+                            <div className="mb-3">
+                                <label htmlFor="dateOfBirth">Date of Birth <span className="text-danger">*</span></label>
+                                <input 
+                                    type="date" 
+                                    className={`form-control ${validationErrors.dateOfBirth ? 'is-invalid' : ''}`}
+                                    name="dateOfBirth" 
+                                    value={customer.dateOfBirth} 
+                                    onChange={handleChange} 
+                                    max={new Date().toISOString().split('T')[0]}  // Prevents future dates
+                                    required 
+                                    style={{ colorScheme: 'light' }}
+                                />
+                                {validationErrors.dateOfBirth && (
+                                    <div className="invalid-feedback d-block">
+                                        {validationErrors.dateOfBirth}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="col-md-6">
+                            <div className="mb-3">
+                                <div className="mb-3">
+                                    <label htmlFor="addressLabel">Address Label <span className="text-danger">*</span></label>
+                                    <input 
+                                        type="text" 
+                                        className={`form-control ${validationErrors.addressLabel ? 'is-invalid' : ''}`}
+                                        name="addressLabel" 
+                                        placeholder="Home"
+                                        value={customer.addresses[0].label} 
+                                        onChange={(e) => {
+                                            const newAddresses = [...customer.addresses];
+                                            // Always use "Home" if input is empty
+                                            newAddresses[0].label = e.target.value || "Home";
+                                            setCustomer({ ...customer, addresses: newAddresses });
+                                            
+                                            // Clear validation error
+                                            if (e.target.value) {
+                                                setValidationErrors(prev => ({
+                                                    ...prev,
+                                                    addressLabel: ""
+                                                }));
+                                            }
+                                        }}
+                                        required
+                                    />
+                                    {validationErrors.addressLabel && (
+                                        <div className="invalid-feedback">{validationErrors.addressLabel}</div>
+                                    )}
+                                    <div className="form-text small">
+                                        This will default to "Home" if left empty
+                                    </div>
+                                </div>
+                                <div className="mb-3">
+                                    <label htmlFor="street">Street <span className="text-danger">*</span></label>
+                                    <input 
+                                        type="text" 
+                                        className={`form-control ${validationErrors.street ? 'is-invalid' : ''}`}
+                                        name="street" 
+                                        value={customer.addresses[0].street} 
+                                        onChange={(e) => {
+                                            const newAddresses = [...customer.addresses];
+                                            newAddresses[0].street = e.target.value;
+                                            setCustomer({ ...customer, addresses: newAddresses });
+                                        }} 
+                                        required 
+                                    />
+                                    {validationErrors.street && (
+                                        <div className="invalid-feedback">{validationErrors.street}</div>
+                                    )}
+                                </div>
+                                
+                                {/* Country Autocomplete */}
+                                <div className="mb-3">
+                                    <label htmlFor="country">Country <span className="text-danger">*</span></label>
+                                    <div className="position-relative">
+                                        <input 
+                                            type="text" 
+                                            className={`form-control ${validationErrors.country ? 'is-invalid' : ''}`}
+                                            name="country" 
+                                            value={countryInput} 
+                                            onChange={handleCountryInputChange}
+                                            onFocus={() => {
+                                                if (countries.length > 0 && countryInput) {
+                                                    setShowCountrySuggestions(true);
+                                                }
+                                            }}
+                                            onBlur={() => {
+                                                // Delay hiding suggestions to allow clicking on them
+                                                setTimeout(() => {
+                                                    setShowCountrySuggestions(false);
+                                                }, 200);
+                                            }}
+                                            placeholder="Start typing a country name..."
+                                            required 
+                                        />
+                                        {validationErrors.country && (
+                                            <div className="invalid-feedback">{validationErrors.country}</div>
+                                        )}
                                         
-                                        // Clear validation error
-                                        if (e.target.value) {
-                                            setValidationErrors(prev => ({
-                                                ...prev,
-                                                addressLabel: ""
-                                            }));
-                                        }
-                                    }}
-                                    required
-                                />
-                                {validationErrors.addressLabel && (
-                                    <div className="invalid-feedback">{validationErrors.addressLabel}</div>
-                                )}
-                                <div className="form-text small">
-                                    This will default to "Home" if left empty
+                                        {/* Country Suggestions Dropdown */}
+                                        {showCountrySuggestions && countrySuggestions.length > 0 && (
+                                            <div className="position-absolute w-100 mt-1 shadow-sm bg-white border rounded-2 z-index-dropdown" 
+                                                style={{ maxHeight: '200px', overflowY: 'auto', zIndex: 1000 }}>
+                                                {countrySuggestions.map((country, index) => (
+                                                    <div 
+                                                        key={index} 
+                                                        className="px-3 py-2 suggestion-item" 
+                                                        style={{ cursor: 'pointer' }}
+                                                        onMouseDown={() => handleSelectCountry(country)}
+                                                        onMouseOver={(e) => e.target.style.backgroundColor = '#f8f9fa'}
+                                                        onMouseOut={(e) => e.target.style.backgroundColor = ''}
+                                                    >
+                                                        {country}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
-                            </div>
-                            <div className="mb-3">
-                                <label htmlFor="street">Street <span className="text-danger">*</span></label>
-                                <input 
-                                    type="text" 
-                                    className={`form-control ${validationErrors.street ? 'is-invalid' : ''}`}
-                                    name="street" 
-                                    value={customer.addresses[0].street} 
-                                    onChange={(e) => {
-                                        const newAddresses = [...customer.addresses];
-                                        newAddresses[0].street = e.target.value;
-                                        setCustomer({ ...customer, addresses: newAddresses });
-                                    }} 
-                                    required 
-                                />
-                                {validationErrors.street && (
-                                    <div className="invalid-feedback">{validationErrors.street}</div>
-                                )}
-                            </div>
-                            
-                            {/* Country Autocomplete */}
-                            <div className="mb-3">
-                                <label htmlFor="country">Country <span className="text-danger">*</span></label>
-                                <div className="position-relative">
+                                
+                                {/* State Autocomplete */}
+                                <div className="mb-3">
+                                    <label htmlFor="state">State/Province <span className="text-danger">*</span></label>
+                                    <div className="position-relative">
+                                        <input 
+                                            type="text" 
+                                            className={`form-control ${validationErrors.state ? 'is-invalid' : ''}`}
+                                            name="state" 
+                                            value={stateInput} 
+                                            onChange={handleStateInputChange}
+                                            onFocus={() => {
+                                                if (states.length > 0 && stateInput) {
+                                                    setShowStateSuggestions(true);
+                                                }
+                                            }}
+                                            onBlur={() => {
+                                                setTimeout(() => {
+                                                    setShowStateSuggestions(false);
+                                                }, 200);
+                                            }}
+                                            placeholder={customer.addresses[0].country ? "Start typing a state name..." : "Select a country first"}
+                                            required 
+                                            disabled={!customer.addresses[0].country || loadingStates}
+                                        />
+                                        {loadingStates && (
+                                            <div className="position-absolute" style={{ right: '10px', top: '10px' }}>
+                                                <span className="spinner-border spinner-border-sm text-success" role="status"></span>
+                                            </div>
+                                        )}
+                                        {validationErrors.state && (
+                                            <div className="invalid-feedback">{validationErrors.state}</div>
+                                        )}
+                                        
+                                        {/* State Suggestions Dropdown */}
+                                        {showStateSuggestions && stateSuggestions.length > 0 && (
+                                            <div className="position-absolute w-100 mt-1 shadow-sm bg-white border rounded-2 z-index-dropdown" 
+                                                style={{ maxHeight: '200px', overflowY: 'auto', zIndex: 1000 }}>
+                                                {stateSuggestions.map((state, index) => (
+                                                    <div 
+                                                        key={index} 
+                                                        className="px-3 py-2 suggestion-item" 
+                                                        style={{ cursor: 'pointer' }}
+                                                        onMouseDown={() => handleSelectState(state)}
+                                                        onMouseOver={(e) => e.target.style.backgroundColor = '#f8f9fa'}
+                                                        onMouseOut={(e) => e.target.style.backgroundColor = ''}
+                                                    >
+                                                        {state}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                                
+                                {/* City Autocomplete */}
+                                <div className="mb-3">
+                                    <label htmlFor="city">City <span className="text-danger">*</span></label>
+                                    <div className="position-relative">
+                                        <input 
+                                            type="text" 
+                                            className={`form-control ${validationErrors.city ? 'is-invalid' : ''}`}
+                                            name="city" 
+                                            value={cityInput} 
+                                            onChange={handleCityInputChange}
+                                            onFocus={() => {
+                                                if (cities.length > 0 && cityInput) {
+                                                    setShowCitySuggestions(true);
+                                                }
+                                            }}
+                                            onBlur={() => {
+                                                setTimeout(() => {
+                                                    setShowCitySuggestions(false);
+                                                }, 200);
+                                            }}
+                                            placeholder={customer.addresses[0].state ? "Start typing a city name..." : "Select a state first"}
+                                            required 
+                                            disabled={!customer.addresses[0].state || loadingCities}
+                                        />
+                                        {loadingCities && (
+                                            <div className="position-absolute" style={{ right: '10px', top: '10px' }}>
+                                                <span className="spinner-border spinner-border-sm text-success" role="status"></span>
+                                            </div>
+                                        )}
+                                        {validationErrors.city && (
+                                            <div className="invalid-feedback">{validationErrors.city}</div>
+                                        )}
+                                        
+                                        {/* City Suggestions Dropdown */}
+                                        {showCitySuggestions && citySuggestions.length > 0 && (
+                                            <div className="position-absolute w-100 mt-1 shadow-sm bg-white border rounded-2 z-index-dropdown" 
+                                                style={{ maxHeight: '200px', overflowY: 'auto', zIndex: 1000 }}>
+                                                {citySuggestions.map((city, index) => (
+                                                    <div 
+                                                        key={index} 
+                                                        className="px-3 py-2 suggestion-item" 
+                                                        style={{ cursor: 'pointer' }}
+                                                        onMouseDown={() => handleSelectCity(city)}
+                                                        onMouseOver={(e) => e.target.style.backgroundColor = '#f8f9fa'}
+                                                        onMouseOut={(e) => e.target.style.backgroundColor = ''}
+                                                    >
+                                                        {city}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                                <div className="mb-3">
+                                    <label htmlFor="zipCode">Zip Code <span className="text-danger">*</span></label>
                                     <input 
                                         type="text" 
-                                        className={`form-control ${validationErrors.country ? 'is-invalid' : ''}`}
-                                        name="country" 
-                                        value={countryInput} 
-                                        onChange={handleCountryInputChange}
-                                        onFocus={() => {
-                                            if (countries.length > 0 && countryInput) {
-                                                setShowCountrySuggestions(true);
-                                            }
-                                        }}
-                                        onBlur={() => {
-                                            // Delay hiding suggestions to allow clicking on them
-                                            setTimeout(() => {
-                                                setShowCountrySuggestions(false);
-                                            }, 200);
-                                        }}
-                                        placeholder="Start typing a country name..."
+                                        className={`form-control ${validationErrors.zipCode ? 'is-invalid' : ''}`}
+                                        name="zipCode" 
+                                        value={customer.addresses[0].zipCode} 
+                                        onChange={(e) => {
+                                            const newAddresses = [...customer.addresses];
+                                            newAddresses[0].zipCode = e.target.value;
+                                            setCustomer({ ...customer, addresses: newAddresses });
+                                        }} 
                                         required 
                                     />
-                                    {validationErrors.country && (
-                                        <div className="invalid-feedback">{validationErrors.country}</div>
-                                    )}
-                                    
-                                    {/* Country Suggestions Dropdown */}
-                                    {showCountrySuggestions && countrySuggestions.length > 0 && (
-                                        <div className="position-absolute w-100 mt-1 shadow-sm bg-white border rounded-2 z-index-dropdown" 
-                                            style={{ maxHeight: '200px', overflowY: 'auto', zIndex: 1000 }}>
-                                            {countrySuggestions.map((country, index) => (
-                                                <div 
-                                                    key={index} 
-                                                    className="px-3 py-2 suggestion-item" 
-                                                    style={{ cursor: 'pointer' }}
-                                                    onMouseDown={() => handleSelectCountry(country)}
-                                                    onMouseOver={(e) => e.target.style.backgroundColor = '#f8f9fa'}
-                                                    onMouseOut={(e) => e.target.style.backgroundColor = ''}
-                                                >
-                                                    {country}
-                                                </div>
-                                            ))}
-                                        </div>
+                                    {validationErrors.zipCode && (
+                                        <div className="invalid-feedback">{validationErrors.zipCode}</div>
                                     )}
                                 </div>
-                            </div>
-                            
-                            {/* State Autocomplete */}
-                            <div className="mb-3">
-                                <label htmlFor="state">State/Province <span className="text-danger">*</span></label>
-                                <div className="position-relative">
-                                    <input 
-                                        type="text" 
-                                        className={`form-control ${validationErrors.state ? 'is-invalid' : ''}`}
-                                        name="state" 
-                                        value={stateInput} 
-                                        onChange={handleStateInputChange}
-                                        onFocus={() => {
-                                            if (states.length > 0 && stateInput) {
-                                                setShowStateSuggestions(true);
-                                            }
-                                        }}
-                                        onBlur={() => {
-                                            setTimeout(() => {
-                                                setShowStateSuggestions(false);
-                                            }, 200);
-                                        }}
-                                        placeholder={customer.addresses[0].country ? "Start typing a state name..." : "Select a country first"}
-                                        required 
-                                        disabled={!customer.addresses[0].country || loadingStates}
-                                    />
-                                    {loadingStates && (
-                                        <div className="position-absolute" style={{ right: '10px', top: '10px' }}>
-                                            <span className="spinner-border spinner-border-sm text-secondary" role="status"></span>
-                                        </div>
-                                    )}
-                                    {validationErrors.state && (
-                                        <div className="invalid-feedback">{validationErrors.state}</div>
-                                    )}
-                                    
-                                    {/* State Suggestions Dropdown */}
-                                    {showStateSuggestions && stateSuggestions.length > 0 && (
-                                        <div className="position-absolute w-100 mt-1 shadow-sm bg-white border rounded-2 z-index-dropdown" 
-                                            style={{ maxHeight: '200px', overflowY: 'auto', zIndex: 1000 }}>
-                                            {stateSuggestions.map((state, index) => (
-                                                <div 
-                                                    key={index} 
-                                                    className="px-3 py-2 suggestion-item" 
-                                                    style={{ cursor: 'pointer' }}
-                                                    onMouseDown={() => handleSelectState(state)}
-                                                    onMouseOver={(e) => e.target.style.backgroundColor = '#f8f9fa'}
-                                                    onMouseOut={(e) => e.target.style.backgroundColor = ''}
-                                                >
-                                                    {state}
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                            
-                            {/* City Autocomplete */}
-                            <div className="mb-3">
-                                <label htmlFor="city">City <span className="text-danger">*</span></label>
-                                <div className="position-relative">
-                                    <input 
-                                        type="text" 
-                                        className={`form-control ${validationErrors.city ? 'is-invalid' : ''}`}
-                                        name="city" 
-                                        value={cityInput} 
-                                        onChange={handleCityInputChange}
-                                        onFocus={() => {
-                                            if (cities.length > 0 && cityInput) {
-                                                setShowCitySuggestions(true);
-                                            }
-                                        }}
-                                        onBlur={() => {
-                                            setTimeout(() => {
-                                                setShowCitySuggestions(false);
-                                            }, 200);
-                                        }}
-                                        placeholder={customer.addresses[0].state ? "Start typing a city name..." : "Select a state first"}
-                                        required 
-                                        disabled={!customer.addresses[0].state || loadingCities}
-                                    />
-                                    {loadingCities && (
-                                        <div className="position-absolute" style={{ right: '10px', top: '10px' }}>
-                                            <span className="spinner-border spinner-border-sm text-secondary" role="status"></span>
-                                        </div>
-                                    )}
-                                    {validationErrors.city && (
-                                        <div className="invalid-feedback">{validationErrors.city}</div>
-                                    )}
-                                    
-                                    {/* City Suggestions Dropdown */}
-                                    {showCitySuggestions && citySuggestions.length > 0 && (
-                                        <div className="position-absolute w-100 mt-1 shadow-sm bg-white border rounded-2 z-index-dropdown" 
-                                            style={{ maxHeight: '200px', overflowY: 'auto', zIndex: 1000 }}>
-                                            {citySuggestions.map((city, index) => (
-                                                <div 
-                                                    key={index} 
-                                                    className="px-3 py-2 suggestion-item" 
-                                                    style={{ cursor: 'pointer' }}
-                                                    onMouseDown={() => handleSelectCity(city)}
-                                                    onMouseOver={(e) => e.target.style.backgroundColor = '#f8f9fa'}
-                                                    onMouseOut={(e) => e.target.style.backgroundColor = ''}
-                                                >
-                                                    {city}
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                            <div className="mb-3">
-                                <label htmlFor="zipCode">Zip Code <span className="text-danger">*</span></label>
-                                <input 
-                                    type="text" 
-                                    className={`form-control ${validationErrors.zipCode ? 'is-invalid' : ''}`}
-                                    name="zipCode" 
-                                    value={customer.addresses[0].zipCode} 
-                                    onChange={(e) => {
-                                        const newAddresses = [...customer.addresses];
-                                        newAddresses[0].zipCode = e.target.value;
-                                        setCustomer({ ...customer, addresses: newAddresses });
-                                    }} 
-                                    required 
-                                />
-                                {validationErrors.zipCode && (
-                                    <div className="invalid-feedback">{validationErrors.zipCode}</div>
-                                )}
-                            </div>
-                            <div className="mb-3">
-                                <div className="form-check">
-                                    <input 
-                                        type="checkbox" 
-                                        className="form-check-input" 
-                                        id="isPrimary" 
-                                        checked={true}
-                                        disabled
-                                        title="First address is automatically set as primary"
-                                    />
-                                    <label className="form-check-label text-muted" htmlFor="isPrimary">
-                                        Primary Address
-                                    </label>
+                                <div className="mb-3">
+                                    <div className="form-check">
+                                        <input 
+                                            type="checkbox" 
+                                            className="form-check-input" 
+                                            id="isPrimary" 
+                                            checked={true}
+                                            disabled
+                                            title="First address is automatically set as primary"
+                                        />
+                                        <label className="form-check-label text-muted" htmlFor="isPrimary">
+                                            Primary Address
+                                        </label>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </div>
 
-                <div className="text-center mt-4">
-                    <button 
-                        type="submit" 
-                        className="btn btn-dark px-4 py-2" 
-                        disabled={loading}
-                    >
-                        {loading ? "Creating Account..." : "Create Account"}
-                    </button>
-                </div>
-            </form>
+                    <div className="text-center mt-4">
+                        <button 
+                            type="submit" 
+                            className="btn btn-dark px-4 py-2" 
+                            disabled={loading}
+                        >
+                            {loading ? "Creating Account..." : "Create Account"}
+                        </button>
+                    </div>
+                </form>
+              </Card.Body>
+            </Card>
         </div>
     );
 };
