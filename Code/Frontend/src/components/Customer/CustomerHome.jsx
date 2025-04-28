@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import axios from "axios";
+import axios from "../../config/axios";
 import { fetchRestaurants, clearRestaurant } from "../../redux/slices/restaurant/restaurantSlice";
 import "bootstrap/dist/css/bootstrap.min.css";
 import NavbarDark from "../Common/NavbarDark";
@@ -446,7 +446,7 @@ const CustomerHome = () => {
                                     
                                     <p key={`name-${restaurant.id}`} className="card-title fw-bold">{restaurant.name}</p>
                                     
-                                    {/* Rating display */}
+                                    {/* Rating display with price range for quick cost reference */}
                                     <div className="d-flex align-items-center" style={{ marginTop: "-8px" }}>
                                         <span className="me-1" style={{ 
                                             color: restaurant.rating 
@@ -473,6 +473,12 @@ const CustomerHome = () => {
                                         {restaurant.ratingCount > 0 && (
                                             <span className="text-muted" style={{ fontSize: "0.85rem" }}>
                                                 ({restaurant.ratingCount})
+                                            </span>
+                                        )}
+                                        {/* Show price range next to rating, in muted grey */}
+                                        {restaurant.priceRange && (
+                                            <span className="ms-2 text-muted" style={{ fontSize: "0.97em" }}>
+                                                {restaurant.priceRange}
                                             </span>
                                         )}
                                     </div>

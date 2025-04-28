@@ -5,9 +5,8 @@ import { fetchCustomer, updateCustomer } from "../../redux/slices/customer/custo
 import { addAddress, updateAddress, deleteAddress, setAddresses } from "../../redux/slices/customer/addressSlice";
 import "bootstrap/dist/css/bootstrap.min.css";
 import NavbarDark from "../Common/NavbarDark";
-import axios from "axios";
+import axios from "../../config/axios";
 import { validateEmail, validatePhone, validatePassword } from "../../utils/validation";
-axios.defaults.withCredentials = true;
 
 const CustomerEditProfile = () => {
     const { id } = useParams();
@@ -460,7 +459,7 @@ const CustomerEditProfile = () => {
         try {
             const response = await axios.post("/api/customers/upload-image", formData, {
                 headers: { "Content-Type": "multipart/form-data" },
-                withCredentials: true
+                
             });
             
             // Determine if this is a new upload or a change
@@ -825,7 +824,7 @@ const CustomerEditProfile = () => {
                         >
                             {formData.imageUrl ? (
                                 <img
-                                    src={formData.imageUrl.startsWith('/') ? `http://localhost:3000${formData.imageUrl}` : formData.imageUrl}
+                                    src={formData.imageUrl.startsWith('/') ? `${axios.defaults.baseURL}${formData.imageUrl}` : formData.imageUrl}
                                     alt="Profile"
                                     style={{
                                         width: '100%',
@@ -1170,217 +1169,217 @@ const CustomerEditProfile = () => {
                             />
                         </div>
                         <div className="mb-3">
-                                        <label htmlFor="street">Street <span className="text-danger">*</span></label>
-                                <input
-                                            type="text"
-                                            className="form-control"
-                                            name="street"
-                                            value={addressFormData.street}
-                                            onChange={handleAddressChange}
-                                            required
-                                        />
-                                    </div>
+                            <label htmlFor="street">Street <span className="text-danger">*</span></label>
+                            <input
+                                type="text"
+                                className="form-control"
+                                name="street"
+                                value={addressFormData.street}
+                                onChange={handleAddressChange}
+                                required
+                            />
+                        </div>
                                     
-                                    {/* Country Autocomplete */}
-                                    <div className="mb-3">
-                                        <label htmlFor="country">Country <span className="text-danger">*</span></label>
-                                        <div className="position-relative">
-                                            <input 
-                                                type="text" 
-                                                className="form-control"
-                                                name="country" 
-                                                value={countryInput}
-                                                onChange={handleCountryInputChange}
-                                                onFocus={() => {
-                                                    if (countries.length > 0 && countryInput) {
-                                                        setShowCountrySuggestions(true);
-                                                    }
-                                                }}
-                                                onBlur={() => {
-                                                    // Delay hiding suggestions to allow clicking on them
-                                                    setTimeout(() => {
-                                                        setShowCountrySuggestions(false);
-                                                    }, 200);
-                                                }}
-                                                placeholder="Start typing a country name..."
-                                                required 
-                                            />
-                                            
-                                            {/* Country Suggestions Dropdown */}
-                                            {showCountrySuggestions && countrySuggestions.length > 0 && (
-                                                <div className="position-absolute w-100 mt-1 shadow-sm bg-white border rounded-2" 
-                                                    style={{ maxHeight: '200px', overflowY: 'auto', zIndex: 1000 }}>
-                                                    {countrySuggestions.map((country, index) => (
-                                                        <div 
-                                                            key={index} 
-                                                            className="px-3 py-2" 
-                                                            style={{ cursor: 'pointer' }}
-                                                            onMouseDown={() => handleSelectCountry(country)}
-                                                            onMouseOver={(e) => e.target.style.backgroundColor = '#f8f9fa'}
-                                                            onMouseOut={(e) => e.target.style.backgroundColor = ''}
-                                                        >
-                                                            {country}
-                                                        </div>
-                                                    ))}
-                                                </div>
+                        {/* Country Autocomplete */}
+                        <div className="mb-3">
+                            <label htmlFor="country">Country <span className="text-danger">*</span></label>
+                            <div className="position-relative">
+                                <input 
+                                    type="text" 
+                                    className="form-control"
+                                    name="country" 
+                                    value={countryInput}
+                                    onChange={handleCountryInputChange}
+                                    onFocus={() => {
+                                        if (countries.length > 0 && countryInput) {
+                                            setShowCountrySuggestions(true);
+                                        }
+                                    }}
+                                    onBlur={() => {
+                                        // Delay hiding suggestions to allow clicking on them
+                                        setTimeout(() => {
+                                            setShowCountrySuggestions(false);
+                                        }, 200);
+                                    }}
+                                    placeholder="Start typing a country name..."
+                                    required 
+                                />
+                                
+                                {/* Country Suggestions Dropdown */}
+                                {showCountrySuggestions && countrySuggestions.length > 0 && (
+                                    <div className="position-absolute w-100 mt-1 shadow-sm bg-white border rounded-2" 
+                                        style={{ maxHeight: '200px', overflowY: 'auto', zIndex: 1000 }}>
+                                        {countrySuggestions.map((country, index) => (
+                                            <div 
+                                                key={index} 
+                                                className="px-3 py-2" 
+                                                style={{ cursor: 'pointer' }}
+                                                onMouseDown={() => handleSelectCountry(country)}
+                                                onMouseOver={(e) => e.target.style.backgroundColor = '#f8f9fa'}
+                                                onMouseOut={(e) => e.target.style.backgroundColor = ''}
+                                            >
+                                                {country}
+                                            </div>
+                                        ))}
+                                    </div>
                                 )}
                             </div>
                         </div>
                     </div>
-                                <div className="col-md-6">
-                                    {/* State Autocomplete */}
-                                    <div className="mb-3">
-                                        <label htmlFor="state">State <span className="text-danger">*</span></label>
-                                        <div className="position-relative">
-                                            <input 
-                                                type="text" 
-                                                className="form-control"
-                                                name="state" 
-                                                value={stateInput}
-                                                onChange={handleStateInputChange}
-                                                onFocus={() => {
-                                                    if (states.length > 0 && stateInput) {
-                                                        setShowStateSuggestions(true);
-                                                    }
-                                                }}
-                                                onBlur={() => {
-                                                    setTimeout(() => {
-                                                        setShowStateSuggestions(false);
-                                                    }, 200);
-                                                }}
-                                                placeholder={addressFormData.country ? "Start typing a state name..." : "Select a country first"}
-                                                required 
-                                                disabled={!addressFormData.country || loadingStates}
-                                            />
-                                            {loadingStates && (
-                                                <div className="position-absolute" style={{ right: '10px', top: '10px' }}>
-                                                    <span className="spinner-border spinner-border-sm text-success" role="status"></span>
-                                                </div>
-                                            )}
+                    <div className="col-md-6">
+                        {/* State Autocomplete */}
+                        <div className="mb-3">
+                            <label htmlFor="state">State <span className="text-danger">*</span></label>
+                            <div className="position-relative">
+                                <input 
+                                    type="text" 
+                                    className="form-control"
+                                    name="state" 
+                                    value={stateInput}
+                                    onChange={handleStateInputChange}
+                                    onFocus={() => {
+                                        if (states.length > 0 && stateInput) {
+                                            setShowStateSuggestions(true);
+                                        }
+                                    }}
+                                    onBlur={() => {
+                                        setTimeout(() => {
+                                            setShowStateSuggestions(false);
+                                        }, 200);
+                                    }}
+                                    placeholder={addressFormData.country ? "Start typing a state name..." : "Select a country first"}
+                                    required 
+                                    disabled={!addressFormData.country || loadingStates}
+                                />
+                                {loadingStates && (
+                                    <div className="position-absolute" style={{ right: '10px', top: '10px' }}>
+                                        <span className="spinner-border spinner-border-sm text-success" role="status"></span>
+                                    </div>
+                                )}
                                             
-                                            {/* State Suggestions Dropdown */}
-                                            {showStateSuggestions && stateSuggestions.length > 0 && (
-                                                <div className="position-absolute w-100 mt-1 shadow-sm bg-white border rounded-2" 
-                                                    style={{ maxHeight: '200px', overflowY: 'auto', zIndex: 1000 }}>
-                                                    {stateSuggestions.map((state, index) => (
-                                                        <div 
-                                                            key={index} 
-                                                            className="px-3 py-2" 
-                                                            style={{ cursor: 'pointer' }}
-                                                            onMouseDown={() => handleSelectState(state)}
-                                                            onMouseOver={(e) => e.target.style.backgroundColor = '#f8f9fa'}
-                                                            onMouseOut={(e) => e.target.style.backgroundColor = ''}
-                                                        >
-                                                            {state}
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                    
-                                    {/* City Autocomplete */}
-                                    <div className="mb-3">
-                                        <label htmlFor="city">City <span className="text-danger">*</span></label>
-                                        <div className="position-relative">
-                                            <input 
-                                                type="text" 
-                                                className="form-control"
-                                                name="city" 
-                                                value={cityInput}
-                                                onChange={handleCityInputChange}
-                                                onFocus={() => {
-                                                    if (cities.length > 0 && cityInput) {
-                                                        setShowCitySuggestions(true);
-                                                    }
-                                                }}
-                                                onBlur={() => {
-                                                    setTimeout(() => {
-                                                        setShowCitySuggestions(false);
-                                                    }, 200);
-                                                }}
-                                                placeholder={addressFormData.state ? "Start typing a city name..." : "Select a state first"}
-                                                required 
-                                                disabled={!addressFormData.state || loadingCities}
-                                            />
-                                            {loadingCities && (
-                                                <div className="position-absolute" style={{ right: '10px', top: '10px' }}>
-                                                    <span className="spinner-border spinner-border-sm text-success" role="status"></span>
-                                                </div>
-                                            )}
-                                            
-                                            {/* City Suggestions Dropdown */}
-                                            {showCitySuggestions && citySuggestions.length > 0 && (
-                                                <div className="position-absolute w-100 mt-1 shadow-sm bg-white border rounded-2" 
-                                                    style={{ maxHeight: '200px', overflowY: 'auto', zIndex: 1000 }}>
-                                                    {citySuggestions.map((city, index) => (
-                                                        <div 
-                                                            key={index} 
-                                                            className="px-3 py-2" 
-                                                            style={{ cursor: 'pointer' }}
-                                                            onMouseDown={() => handleSelectCity(city)}
-                                                            onMouseOver={(e) => e.target.style.backgroundColor = '#f8f9fa'}
-                                                            onMouseOut={(e) => e.target.style.backgroundColor = ''}
-                                                        >
-                                                            {city}
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                    
-                                    <div className="mb-3">
-                                        <label htmlFor="zipCode">ZIP Code <span className="text-danger">*</span></label>
-                                        <input
-                                            type="text"
-                                            className="form-control"
-                                            name="zipCode"
-                                            value={addressFormData.zipCode}
-                                            onChange={handleAddressChange}
-                                            required
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="mb-3">
-                                {(addresses.length > 0 || editAddressId) && (
-                                    <div className="form-check">
-                                        <input
-                                            type="checkbox"
-                                            className="form-check-input"
-                                            name="isPrimary"
-                                            id="isPrimary"
-                                            checked={addressFormData.isPrimary}
-                                            onChange={handleAddressChange}
-                                            disabled={addresses.length === 0} // Auto-primary if first address
-                                        />
-                                        <label className="form-check-label" htmlFor="isPrimary">
-                                            Set as Primary Address
-                                            {addresses.length === 0 && <span className="text-muted ms-2">(First address is automatically primary)</span>}
-                                        </label>
+                                {/* State Suggestions Dropdown */}
+                                {showStateSuggestions && stateSuggestions.length > 0 && (
+                                    <div className="position-absolute w-100 mt-1 shadow-sm bg-white border rounded-2" 
+                                        style={{ maxHeight: '200px', overflowY: 'auto', zIndex: 1000 }}>
+                                        {stateSuggestions.map((state, index) => (
+                                            <div 
+                                                key={index} 
+                                                className="px-3 py-2" 
+                                                style={{ cursor: 'pointer' }}
+                                                onMouseDown={() => handleSelectState(state)}
+                                                onMouseOver={(e) => e.target.style.backgroundColor = '#f8f9fa'}
+                                                onMouseOut={(e) => e.target.style.backgroundColor = ''}
+                                            >
+                                                {state}
+                                            </div>
+                                        ))}
                                     </div>
                                 )}
                             </div>
-                            <div className="d-flex gap-2 justify-content-end">
-                                <button 
-                                    type="button" 
-                                    className="btn btn-outline-secondary rounded-pill" 
-                                    onClick={cancelAddressForm}
-                                >
-                                    Cancel
-                                </button>
+                        </div>
+                                    
+                        {/* City Autocomplete */}
+                        <div className="mb-3">
+                            <label htmlFor="city">City <span className="text-danger">*</span></label>
+                            <div className="position-relative">
+                                <input 
+                                    type="text" 
+                                    className="form-control"
+                                    name="city" 
+                                    value={cityInput}
+                                    onChange={handleCityInputChange}
+                                    onFocus={() => {
+                                        if (cities.length > 0 && cityInput) {
+                                            setShowCitySuggestions(true);
+                                        }
+                                    }}
+                                    onBlur={() => {
+                                        setTimeout(() => {
+                                            setShowCitySuggestions(false);
+                                        }, 200);
+                                    }}
+                                    placeholder={addressFormData.state ? "Start typing a city name..." : "Select a state first"}
+                                    required 
+                                    disabled={!addressFormData.state || loadingCities}
+                                />
+                                {loadingCities && (
+                                    <div className="position-absolute" style={{ right: '10px', top: '10px' }}>
+                                        <span className="spinner-border spinner-border-sm text-success" role="status"></span>
+                                    </div>
+                                )}
+                                            
+                                {/* City Suggestions Dropdown */}
+                                {showCitySuggestions && citySuggestions.length > 0 && (
+                                    <div className="position-absolute w-100 mt-1 shadow-sm bg-white border rounded-2" 
+                                        style={{ maxHeight: '200px', overflowY: 'auto', zIndex: 1000 }}>
+                                        {citySuggestions.map((city, index) => (
+                                            <div 
+                                                key={index} 
+                                                className="px-3 py-2" 
+                                                style={{ cursor: 'pointer' }}
+                                                onMouseDown={() => handleSelectCity(city)}
+                                                onMouseOver={(e) => e.target.style.backgroundColor = '#f8f9fa'}
+                                                onMouseOut={(e) => e.target.style.backgroundColor = ''}
+                                            >
+                                                {city}
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                                
+                        <div className="mb-3">
+                            <label htmlFor="zipCode">ZIP Code <span className="text-danger">*</span></label>
+                            <input
+                                type="text"
+                                className="form-control"
+                                name="zipCode"
+                                value={addressFormData.zipCode}
+                                onChange={handleAddressChange}
+                                required
+                            />
+                        </div>
+                    </div>
+                </div>
+                <div className="mb-3">
+                    {(addresses.length > 0 || editAddressId) && (
+                        <div className="form-check">
+                            <input
+                                type="checkbox"
+                                className="form-check-input"
+                                name="isPrimary"
+                                id="isPrimary"
+                                checked={addressFormData.isPrimary}
+                                onChange={handleAddressChange}
+                                disabled={addresses.length === 0} // Auto-primary if first address
+                            />
+                            <label className="form-check-label" htmlFor="isPrimary">
+                                Set as Primary Address
+                                {addresses.length === 0 && <span className="text-muted ms-2">(First address is automatically primary)</span>}
+                            </label>
+                        </div>
+                    )}
+                </div>
+                <div className="d-flex gap-2 justify-content-end">
+                    <button 
+                        type="button" 
+                        className="btn btn-outline-secondary rounded-pill" 
+                        onClick={cancelAddressForm}
+                    >
+                        Cancel
+                    </button>
                     <button 
                         type="submit" 
-                                    className="btn btn-dark rounded-pill"
-                                    disabled={addressLoading}
+                        className="btn btn-dark rounded-pill"
+                        disabled={addressLoading}
                     >
-                                    {addressLoading ? "Saving..." : "Save Address"}
+                        {addressLoading ? "Saving..." : "Save Address"}
                     </button>
                 </div>
             </form>
-                    </div>
-                )}
+            </div>
+            )}
                 
                 {/* Address Cards */}
                 {addresses && addresses.length > 0 ? (

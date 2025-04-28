@@ -6,10 +6,8 @@ import { selectOrderPreference, setOrderPreference } from "../../redux/slices/cu
 import "./Navbar.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
 import { selectCartItemsCount } from '../../redux/slices/customer/cartSlice';
-import axios from "axios";
-axios.defaults.withCredentials = true;
 
-// Add the CSS for pill toggle here
+// Add the CSS for delivery/pickup pill toggle here
 const toggleStyles = `
 .pill-toggle {
   position: relative;

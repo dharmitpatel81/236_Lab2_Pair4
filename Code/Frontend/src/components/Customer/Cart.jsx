@@ -300,7 +300,7 @@ const Cart = () => {
             setTimeout(() => {
                 dispatch(clearCart()); // Clear the cart
                 dispatch(resetOrderStatus());
-                navigate('/restaurants');
+                navigate('/customer/orders');
             }, 2000);
         }
     }, [orderStatus, navigate, dispatch]);
@@ -868,9 +868,9 @@ const Cart = () => {
             <>
                 <NavbarDark />
                 <div className="container mt-5 text-center">
-                    <div className="alert alert-success rounded-4 shadow-sm">
+                    <div className="alert alert-success rounded-4">
                         <h4>Order placed successfully!</h4>
-                        <p>You will be redirected to the home page shortly...</p>
+                        <p>You will be redirected to your orders shortly...</p>
                     </div>
                 </div>
             </>

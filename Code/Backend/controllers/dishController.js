@@ -5,7 +5,7 @@ const Restaurant = require('../models/restaurant');
 exports.createDish = async (req, res) => {
   try {
     const { name, description, sizes, category, ingredients, imageUrl, isAvailable } = req.body;
-    const restaurantId = req.session.userId;
+    const restaurantId = req.user?.id || req.user?._id;
 
     // Validate required fields
     if (!name || !sizes || !Array.isArray(sizes) || sizes.length === 0 || !category || !Array.isArray(category) || category.length === 0) {
@@ -56,19 +56,6 @@ exports.createDish = async (req, res) => {
   }
 };
 
-// // Get all dishes for a restaurant
-// exports.getRestaurantDishes = async (req, res) => {
-//   try {
-//     const restaurantId = req.params.restaurantId;
-    
-//     const dishes = await Dish.find({ restaurantId })
-//       .sort({ category: 1, name: 1 });
-    
-//     res.json(dishes);
-//   } catch (error) {
-//     res.status(500).json({ message: 'Error fetching dishes', error: error.message });
-//   }
-// };
 
 // Get a specific dish by ID
 exports.getDishById = async (req, res) => {
@@ -91,7 +78,7 @@ exports.getDishById = async (req, res) => {
 exports.updateDish = async (req, res) => {
   try {
     const dishId = req.params.dishId;
-    const restaurantId = req.session.userId;
+    const restaurantId = req.user?.id || req.user?._id;
     const updates = req.body;
     
     // Find the dish
@@ -102,7 +89,7 @@ exports.updateDish = async (req, res) => {
     }
     
     // Check if the dish belongs to the restaurant
-    if (dish.restaurantId.toString() !== restaurantId) {
+    if (dish.restaurantId.toString() !== restaurantId.toString()) {
       return res.status(403).json({ message: 'Not authorized to update this dish' });
     }
     
@@ -170,7 +157,7 @@ exports.updateDish = async (req, res) => {
 exports.deleteDish = async (req, res) => {
   try {
     const dishId = req.params.dishId;
-    const restaurantId = req.session.userId;
+    const restaurantId = req.user?.id || req.user?._id;
     
     // Find the dish
     const dish = await Dish.findById(dishId);
@@ -180,7 +167,7 @@ exports.deleteDish = async (req, res) => {
     }
     
     // Check ownership
-    if (dish.restaurantId.toString() !== restaurantId) {
+    if (dish.restaurantId.toString() !== restaurantId.toString()) {
       return res.status(403).json({ message: 'Not authorized to delete this dish' });
     }
     // Keep copy of categories before deletion
@@ -217,7 +204,7 @@ exports.deleteDish = async (req, res) => {
 exports.toggleAvailability = async (req, res) => {
   try {
     const dishId = req.params.dishId;
-    const restaurantId = req.session.userId;
+    const restaurantId = req.user?.id || req.user?._id;
     
     // Find the dish
     const dish = await Dish.findById(dishId);
@@ -226,8 +213,8 @@ exports.toggleAvailability = async (req, res) => {
       return res.status(404).json({ message: 'Dish not found' });
     }
     
-    // Check ownership
-    if (dish.restaurantId.toString() !== restaurantId) {
+    // Check ownership by comparing both as strings for reliability
+    if (dish.restaurantId.toString() !== restaurantId.toString()) {
       return res.status(403).json({ message: 'Not authorized to update this dish' });
     }
     // Copy categories for cuisine update

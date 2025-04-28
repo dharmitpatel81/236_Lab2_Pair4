@@ -4,7 +4,7 @@ const Restaurant = require('../models/restaurant');
 
 exports.addFavorite = async (req, res) => {
   try {
-    const customerId = req.session.userId;
+    const customerId = req.user?.id || req.user?._id;
     const { restaurantId } = req.body;
 
     const customer = await Customer.findById(customerId);
@@ -33,7 +33,7 @@ exports.addFavorite = async (req, res) => {
 
 exports.removeFavorite = async (req, res) => {
   try {
-    const customerId = req.session.userId;
+    const customerId = req.user?.id || req.user?._id;
     const restaurantId = req.params.restaurantId;
 
     const customer = await Customer.findById(customerId);

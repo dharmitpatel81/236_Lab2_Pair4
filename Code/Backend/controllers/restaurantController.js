@@ -41,10 +41,10 @@ const validateAddress = (address) => {
 // Check restaurant authentication status
 exports.checkAuth = async (req, res) => {
   try {
-    // Check if user is authenticated via session
-    if (req.session.userId && req.session.role === 'restaurant') {
+    // Check if user is authenticated via jwt
+    if (req.user?.id || req.user?._id && req.user?.role === 'restaurant') {
       // Find the restaurant to verify they exist in the database
-      const restaurant = await Restaurant.findById(req.session.userId);
+      const restaurant = await Restaurant.findById(req.user?.id || req.user?._id);
       
       if (restaurant) {
         return res.json({
@@ -64,7 +64,7 @@ exports.checkAuth = async (req, res) => {
       }
     }
     
-    // If no valid session or restaurant not found
+    // If no valid jwt or restaurant not found
     return res.json({
       isRestaurantAuthenticated: false
     });
@@ -170,12 +170,12 @@ exports.login = async (req, res) => {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
-    // Set up session
-    req.session.userId = restaurant._id;
-    req.session.role = 'restaurant';
-
+    // Issue JWT
+    const { generateToken } = require('../utils/jwt');
+    const token = generateToken({ _id: restaurant._id, role: 'restaurant' });
     res.json({
         message: 'Login successful',
+        token,
         restaurant: {
           id: restaurant._id,
           name: restaurant.name,
@@ -233,8 +233,8 @@ exports.updateRestaurantProfile = async (req, res) => {
     const updates = req.body;
     
     // Validate that the logged-in restaurant is updating their own data
-    const loggedInRestaurantId = req.session.userId;
-    if (loggedInRestaurantId !== restaurantId) {
+    const loggedInRestaurantId = req.user?.id || req.user?._id;
+    if (loggedInRestaurantId.toString() !== restaurantId.toString()) {
       return res.status(403).json({ message: 'Not authorized to update this restaurant' });
     }
     
@@ -298,7 +298,7 @@ exports.updateRestaurantProfile = async (req, res) => {
       if (updates.email) {
         const existingRestaurant = await Restaurant.findOne({ 
           email: updates.email,
-          _id: { $ne: req.session.userId } // Exclude current restaurant
+          _id: { $ne: req.user?.id || req.user?._id } // Exclude current restaurant
         });
         
         if (existingRestaurant) {
@@ -426,8 +426,8 @@ exports.updateOperatingHours = async (req, res) => {
     }
     
     // Validate that the logged-in restaurant is updating their own data
-    const loggedInRestaurantId = req.session.userId;
-    if (loggedInRestaurantId !== restaurantId) {
+    const loggedInRestaurantId = req.user?.id || req.user?._id;
+    if (loggedInRestaurantId.toString() !== restaurantId.toString()) {
       return res.status(403).json({ message: 'Not authorized to update this restaurant' });
     }
     
@@ -485,14 +485,9 @@ exports.updateOperatingHours = async (req, res) => {
   }
 };
 
+// Logout restaurant (JWT: just tell frontend to remove token)
 exports.logout = (req, res) => {
-  req.session.destroy((err) => {
-    if (err) {
-      return res.status(500).json({ message: 'Error destroying session', error: err.message });
-    }
-    res.clearCookie('connect.sid');
-    res.json({ message: 'Logged out successfully' });
-  });
+  res.json({ message: 'Logged out successfully' });
 };
 
 exports.getAllRestaurants = async (req, res) => {
@@ -584,8 +579,8 @@ exports.toggleStatus = async (req, res) => {
     const { restaurantId } = req.params;
     
     // Validate that the logged-in restaurant is updating their own data
-    const loggedInRestaurantId = req.session.userId;
-    if (loggedInRestaurantId !== restaurantId) {
+    const loggedInRestaurantId = req.user?.id || req.user?._id;
+    if (loggedInRestaurantId.toString() !== restaurantId.toString()) {
       return res.status(403).json({ message: 'Not authorized to update this restaurant' });
     }
     
@@ -631,8 +626,8 @@ exports.toggleDelivery = async (req, res) => {
     const { restaurantId } = req.params;
     
     // Validate that the logged-in restaurant is updating their own data
-    const loggedInRestaurantId = req.session.userId;
-    if (loggedInRestaurantId !== restaurantId) {
+    const loggedInRestaurantId = req.user?.id || req.user?._id;
+    if (loggedInRestaurantId.toString() !== restaurantId.toString()) {
       return res.status(403).json({ message: 'Not authorized to update this restaurant' });
     }
     
@@ -662,8 +657,8 @@ exports.togglePickup = async (req, res) => {
     const { restaurantId } = req.params;
     
     // Validate that the logged-in restaurant is updating their own data
-    const loggedInRestaurantId = req.session.userId;
-    if (loggedInRestaurantId !== restaurantId) {
+    const loggedInRestaurantId = req.user?.id || req.user?._id;
+    if (loggedInRestaurantId.toString() !== restaurantId.toString()) {
       return res.status(403).json({ message: 'Not authorized to update this restaurant' });
     }
     
@@ -692,8 +687,8 @@ exports.deleteRestaurant = async (req, res) => {
     const { restaurantId } = req.params;
     
     // Validate that the logged-in restaurant is deleting their own account
-    const loggedInRestaurantId = req.session.userId;
-    if (loggedInRestaurantId !== restaurantId) {
+    const loggedInRestaurantId = req.user?.id || req.user?._id;
+    if (loggedInRestaurantId.toString() !== restaurantId.toString()) {
       return res.status(403).json({ message: 'Not authorized to delete this restaurant' });
     }
 
@@ -707,17 +702,9 @@ exports.deleteRestaurant = async (req, res) => {
       return res.status(404).json({ message: 'Restaurant not found' });
     }
 
-    // Destroy the session
-    req.session.destroy((err) => {
-      if (err) {
-        return res.status(500).json({ message: 'Error destroying session', error: err.message });
-      }
-      
-      res.clearCookie('connect.sid');
-      res.status(200).json({ 
-        message: `Restaurant account '${deletedRestaurant.name}' and all associated dishes deleted successfully` 
-      });
-    });
+    res.status(200).json({ 
+  message: `Restaurant account '${deletedRestaurant.name}' and all associated dishes deleted successfully` 
+});
   } catch (error) {
     console.error('Error deleting restaurant account:', error);
     res.status(500).json({ message: 'Error deleting restaurant account', error: error.message });
@@ -828,7 +815,7 @@ exports.updateOrderStatus = async (req, res) => {
 
     const order = await Order.findOne({
       _id: orderId,
-      restaurantId: req.session.userId
+      restaurantId: req.user?.id || req.user?._id
     });
 
     if (!order) {
@@ -888,6 +875,7 @@ exports.updateOrderStatus = async (req, res) => {
     order.status = status;
     await order.save();
 
+
     res.json({
       message: `Order status updated from ${oldStatus} to ${status} successfully`,
       order
@@ -901,7 +889,7 @@ exports.updateOrderStatus = async (req, res) => {
 exports.getRestaurantOrderDetails = async (req, res) => {
   try {
     const { orderId } = req.params;
-    const restaurantId = req.session.userId;
+    const restaurantId = req.user?.id || req.user?._id;
 
     // Find the order with full details
     const order = await Order.findOne({

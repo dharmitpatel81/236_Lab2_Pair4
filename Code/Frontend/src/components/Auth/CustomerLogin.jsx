@@ -53,10 +53,8 @@ const CustomerLogin = () => {
         
         try {
             const result = await dispatch(loginCustomer(credentials));
-            
             if (result.meta.requestStatus === "fulfilled") {
-                console.log("Login Successful!", result.payload); 
-                // Explicitly check auth status again after login
+                // JWT is stored by redux/authSlice
                 await dispatch(checkCustomerAuth());
                 navigate("/restaurants"); 
             }

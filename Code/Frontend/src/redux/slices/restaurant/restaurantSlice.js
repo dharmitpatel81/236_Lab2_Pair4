@@ -114,8 +114,7 @@ export const toggleStatus = createAsyncThunk(
                     'Content-Type': 'application/json',
                     'Accept': 'application/json'
                 },
-                data: JSON.stringify({}),
-                withCredentials: true
+                data: JSON.stringify({})
             });
             
             return response.data;

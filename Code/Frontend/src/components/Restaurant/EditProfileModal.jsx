@@ -21,7 +21,8 @@ const EditProfileModal = ({ show, handleClose, onUpdateSuccess }) => {
         address: {
             street: '', city: '', state: '', country: '', zipCode: ''
         },
-        imageUrl: ''
+        imageUrl: '',
+        priceRange: '$' // Default to lowest tier
     });
     // Location autocomplete and suggestions
     const [countries, setCountries] = useState([]);
@@ -63,7 +64,8 @@ const EditProfileModal = ({ show, handleClose, onUpdateSuccess }) => {
                 phone: restaurant.phone || '',
                 description: restaurant.description || '',
                 address: restaurant.address || { street: '', city: '', state: '', country: '', zipCode: '' },
-                imageUrl: restaurant.imageUrl || ''
+                imageUrl: restaurant.imageUrl || '',
+                priceRange: restaurant.priceRange || '$'
             });
             setPreviewImage(restaurant.imageUrl || DEFAULT_IMAGE_PLACEHOLDER);
             setImageFile(null);
@@ -100,6 +102,11 @@ const EditProfileModal = ({ show, handleClose, onUpdateSuccess }) => {
             setValidationErrors(prev => ({ ...prev, description: value.trim() ? '' : 'Description is required' }));
         }
     };
+
+    // Handle price range button click
+    const handlePriceRangeChange = (range) => {
+        setFormData(prev => ({ ...prev, priceRange: range }));
+    }
 
     // --- LOCATION AUTOCOMPLETE & API LOGIC ---
     // Fetch country list from API
@@ -290,7 +297,6 @@ const EditProfileModal = ({ show, handleClose, onUpdateSuccess }) => {
                 imgForm.append('image', imageFile);
                 const res = await axios.post('/api/restaurants/upload-image', imgForm, {
                     headers: { "Content-Type": "multipart/form-data" },
-                    withCredentials: true
                 });
                 if (!res.data) throw new Error('Image upload failed');
                 const data = res.data;
@@ -493,19 +499,37 @@ const EditProfileModal = ({ show, handleClose, onUpdateSuccess }) => {
                                 <Form.Control name="zipCode" value={formData.address.zipCode} onChange={handleChange} required isInvalid={!!validationErrors.zipCode} />
                                 <Form.Control.Feedback type="invalid">{validationErrors.zipCode}</Form.Control.Feedback>
                             </Form.Group>
-                            <Form.Group className="mb-3">
-                                <Form.Label>Description <span className="text-danger">*</span></Form.Label>
-                                <Form.Control
-                                    as="textarea"
-                                    name="description"
-                                    value={formData.description}
-                                    onChange={handleChange}
-                                    rows={5}
-                                    required
-                                    isInvalid={!!validationErrors.description}
-                                />
-                                <Form.Control.Feedback type="invalid">{validationErrors.description}</Form.Control.Feedback>
-                            </Form.Group>
+                            <div className="mb-3">
+                                <label htmlFor="description" className="form-label my-0 fw-medium">
+                                    Description <span className="text-danger">*</span>
+                                </label>
+                                <textarea 
+                                    className={`form-control ${validationErrors.description ? 'is-invalid' : ''}`}
+                                    name="description" 
+                                    value={formData.description} 
+                                    onChange={handleChange} 
+                                    rows="3"
+                                    required 
+                                ></textarea>
+                                {validationErrors.description && <div className="invalid-feedback">{validationErrors.description}</div>}
+                            </div>
+
+                            {/* Price Range Selection - matches RestaurantSignup */}
+                            <div className="mb-3">
+                                <label className="form-label my-0 fw-medium">Price Range</label>
+                                <div className="d-flex">
+                                    {['$', '$$', '$$$', '$$$$'].map((range) => (
+                                        <button
+                                            key={range}
+                                            type="button"
+                                            className={`btn ${formData.priceRange === range ? 'btn-dark' : 'btn-outline-dark'} me-2`}
+                                            onClick={() => handlePriceRangeChange(range)}
+                                        >
+                                            {range}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </Modal.Body>

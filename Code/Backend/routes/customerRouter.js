@@ -3,36 +3,37 @@ const router = express.Router();
 const { uploadImage } = require('../utils/imageUpload');
 const customerController = require('../controllers/customerController');
 const favoriteController = require('../controllers/favoriteController');
-const { authenticateCustomer } = require('../middleware/auth');
+const { checkCustomer } = require('../utils/passport');
+const passport = require('passport');
 
 // Public routes
 router.post('/register', customerController.register);
 router.post('/login', customerController.login);
-router.get('/check-auth', customerController.checkAuth);
+router.get('/check-auth', passport.authenticate('jwt', { session: false }), customerController.checkAuth);
 
 // Protected routes
-router.get('/profile/:id', authenticateCustomer, customerController.getProfile);
-router.put('/profile/:id', authenticateCustomer, customerController.updateProfile);
-router.post('/logout', authenticateCustomer, customerController.logout);
+router.get('/profile/:id', checkCustomer, customerController.getProfile);
+router.put('/profile/:id', checkCustomer, customerController.updateProfile);
+router.post('/logout', checkCustomer, customerController.logout);
 
 // Address management
-router.post('/address', authenticateCustomer, customerController.addAddress);
-router.put('/address/:addressId', authenticateCustomer, customerController.updateAddress);
-router.delete('/address/:addressId', authenticateCustomer, customerController.deleteAddress);
+router.post('/address', checkCustomer, customerController.addAddress);
+router.put('/address/:addressId', checkCustomer, customerController.updateAddress);
+router.delete('/address/:addressId', checkCustomer, customerController.deleteAddress);
 
 // Favorite routes
-router.post('/favorites/add', authenticateCustomer, favoriteController.addFavorite);
-router.delete('/favorites/remove/:restaurantId', authenticateCustomer, favoriteController.removeFavorite);
-router.get('/favorites/:id', authenticateCustomer, favoriteController.getFavorites);
+router.post('/favorites/add', checkCustomer, favoriteController.addFavorite);
+router.delete('/favorites/remove/:restaurantId', checkCustomer, favoriteController.removeFavorite);
+router.get('/favorites/:id', checkCustomer, favoriteController.getFavorites);
 
 // Account deletion
-router.delete('/account/:id', authenticateCustomer, customerController.deleteAccount);
+router.delete('/account/:id', checkCustomer, customerController.deleteAccount);
 
 // Order management
-router.post('/orders/create/:restaurantId', authenticateCustomer, customerController.createOrder);
-router.get('/orders/:customerId', authenticateCustomer, customerController.getCustomerOrders);
-router.get('/orders/single/:orderId', authenticateCustomer, customerController.getOrderDetails);
-router.put('/orders/:orderId/cancel', authenticateCustomer, customerController.cancelOrder);
+router.post('/orders/create/:restaurantId', checkCustomer, customerController.createOrder);
+router.get('/orders/:customerId', checkCustomer, customerController.getCustomerOrders);
+router.get('/orders/single/:orderId', checkCustomer, customerController.getOrderDetails);
+router.put('/orders/:orderId/cancel', checkCustomer, customerController.cancelOrder);
 
 // Upload profile image
 router.post('/upload-image', async (req, res) => {

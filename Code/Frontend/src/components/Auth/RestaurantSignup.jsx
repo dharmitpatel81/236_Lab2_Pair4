@@ -416,10 +416,9 @@ const RestaurantSignup = () => {
             ...restaurant,
             operatingHours: {
                 ...restaurant.operatingHours,
-                [day]: {
-                    ...restaurant.operatingHours[day],
-                    isClosed: checked
-                }
+                [day]: checked
+                    ? { open: '', close: '', isClosed: true }
+                    : { ...restaurant.operatingHours[day], isClosed: false }
             }
         });
     };

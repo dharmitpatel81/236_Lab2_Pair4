@@ -815,6 +815,12 @@ const RestaurantDetail = () => {
                             </div>
                         </div>
                         <span className={`ms-0 fw-bold mb-0 ${isOpenNow ? 'text-success' : 'text-danger'}`}>{isOpenNow ? 'Open' : 'Closed'}</span>
+                        {/* Show price range under open/closed status for quick cost reference */}
+                        {restaurant.priceRange && (
+                            <div className="text-muted" style={{ fontSize: '1.07em' }}>
+                                {restaurant.priceRange}
+                            </div>
+                        )}
                         <div className="my-1" onClick={scrollToRating} style={{ cursor: 'pointer' }}>
                             {(ratingStats.rating > 0 || restaurant.rating > 0) && (
                                 <div className="d-flex align-items-center">

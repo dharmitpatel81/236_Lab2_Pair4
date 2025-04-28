@@ -28,7 +28,7 @@ export const fetchOrdersByRestaurant = createAsyncThunk(
   async (restaurantId, { rejectWithValue }) => {
     try {
       const response = await axios.get(
-        `http://127.0.0.1:3000/api/orders/restaurant/${restaurantId}`
+        `/api/orders/restaurant/${restaurantId}`
       );
       return response.data;
     } catch (error) {
@@ -75,7 +75,7 @@ export const updateOrderStatus = createAsyncThunk(
   async ({ orderId, status }, { rejectWithValue }) => {
     try {
       const response = await axios.put(
-        `http://127.0.0.1:3000/api/orders/${orderId}`,
+        `/api/orders/${orderId}`,
         { status },
         {
           headers: { "Content-Type": "application/json" }

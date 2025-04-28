@@ -1,24 +1,25 @@
 const express = require('express');
 const router = express.Router();
 const restaurantController = require('../controllers/restaurantController');
-const { authenticateRestaurant } = require('../middleware/auth');
+const { checkRestaurant } = require('../utils/passport');
 const { uploadImage } = require('../utils/imageUpload');
+const passport = require('passport');
 
 // Public routes
 router.post('/register', restaurantController.register);
 router.post('/login', restaurantController.login);
-router.get('/check-auth', restaurantController.checkAuth);
+router.get('/check-auth', passport.authenticate('jwt', { session: false }), restaurantController.checkAuth);
 router.get('/', restaurantController.getAllRestaurants);
 
 // Protected routes
-router.post('/logout', authenticateRestaurant, restaurantController.logout);
-router.get('/profile/:restaurantId', authenticateRestaurant, restaurantController.getRestaurantProfile);
-router.put('/profile/:restaurantId', authenticateRestaurant, restaurantController.updateRestaurantProfile);
-router.put('/operating-hours/:restaurantId', authenticateRestaurant, restaurantController.updateOperatingHours);
-router.put('/status/:restaurantId', authenticateRestaurant, restaurantController.toggleStatus);
-router.put('/delivery/:restaurantId', authenticateRestaurant, restaurantController.toggleDelivery);
-router.put('/pickup/:restaurantId', authenticateRestaurant, restaurantController.togglePickup);
-router.delete('/account/:restaurantId', authenticateRestaurant, restaurantController.deleteRestaurant);
+router.post('/logout', checkRestaurant, restaurantController.logout);
+router.get('/profile/:restaurantId', checkRestaurant, restaurantController.getRestaurantProfile);
+router.put('/profile/:restaurantId', checkRestaurant, restaurantController.updateRestaurantProfile);
+router.put('/operating-hours/:restaurantId', checkRestaurant, restaurantController.updateOperatingHours);
+router.put('/status/:restaurantId', checkRestaurant, restaurantController.toggleStatus);
+router.put('/delivery/:restaurantId', checkRestaurant, restaurantController.toggleDelivery);
+router.put('/pickup/:restaurantId', checkRestaurant, restaurantController.togglePickup);
+router.delete('/account/:restaurantId', checkRestaurant, restaurantController.deleteRestaurant);
 
 // Image upload route
 router.post('/upload-image', async (req, res) => {
@@ -50,9 +51,9 @@ router.post('/upload-image', async (req, res) => {
 });
 
 // Order management
-router.get('/:restaurantId/orders', authenticateRestaurant, restaurantController.getRestaurantOrders);
-router.get('/orders/:orderId', authenticateRestaurant, restaurantController.getRestaurantOrderDetails);
-router.put('/orders/:orderId/status', authenticateRestaurant, restaurantController.updateOrderStatus);
+router.get('/:restaurantId/orders', checkRestaurant, restaurantController.getRestaurantOrders);
+router.get('/orders/:orderId', checkRestaurant, restaurantController.getRestaurantOrderDetails);
+router.put('/orders/:orderId/status', checkRestaurant, restaurantController.updateOrderStatus);
 
 // Public Get restaurant by ID
 router.get('/:id', restaurantController.getRestaurantById);

@@ -6,7 +6,7 @@ exports.createRating = async (req, res) => {
   try {
     const { rating, review } = req.body;
     const restaurantId = req.params.restaurantId;
-    const customerId = req.session.userId;
+    const customerId = req.user.id || req.user._id;
 
     // Validate rating is a whole number between 1-5
     const ratingNum = parseInt(rating);
@@ -117,7 +117,7 @@ exports.updateRating = async (req, res) => {
   try {
     const { rating, review } = req.body;
     const ratingId = req.params.ratingId;
-    const customerId = req.session.userId;
+    const customerId = req.user.id || req.user._id;
 
     // Validate rating is a whole number between 1-5
     const ratingNum = parseInt(rating);
@@ -169,7 +169,7 @@ exports.updateRating = async (req, res) => {
 exports.deleteRating = async (req, res) => {
   try {
     const ratingId = req.params.ratingId;
-    const customerId = req.session.userId;
+    const customerId = req.user.id || req.user._id;
 
     // Find the rating
     const rating = await Rating.findById(ratingId);

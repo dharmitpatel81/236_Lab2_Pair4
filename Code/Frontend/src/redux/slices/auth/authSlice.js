@@ -1,40 +1,31 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import axios from "axios";
+import axios from "../../../config/axios";
 
 // Set axios defaults
-axios.defaults.withCredentials = true;
 axios.defaults.headers.common['Cache-Control'] = 'no-cache';
 axios.defaults.headers.common['Pragma'] = 'no-cache';
+axios.defaults.headers.common['Authorization'] = `Bearer ${localStorage.getItem('jwtToken')}`;
 
-// Create a global axios instance with consistent settings
-const api = axios.create({
-  withCredentials: true,
-  headers: {
-    'Content-Type': 'application/json',
-    'Cache-Control': 'no-cache',
-    'Pragma': 'no-cache'
-  }
-});
+// Use the shared axios instance from config/axios.js for all requests
+// (interceptor will add JWT automatically)
+
 
 // Login Customer
 export const loginCustomer = createAsyncThunk(
   "customerAuth/loginCustomer",
   async (credentials, { rejectWithValue }) => {
     try {
-      const response = await api.post(
+      const response = await axios.post(
         "/api/customers/login",
         credentials
       );
 
-      console.log("Login API Response:", response.data);
-      
-      // Store in localStorage as backup
-      // localStorage.setItem('customerAuth', JSON.stringify({
-      //   isCustomerAuthenticated: true,
-      //   customer: response.data.customer
-      // }));
-
-      return response.data.customer;
+      // Store JWT in localStorage
+      if (response.data.token) {
+        localStorage.setItem('jwtToken', response.data.token);
+      }
+      // Return both customer and token for reducer
+      return { customer: response.data.customer, token: response.data.token };
     } catch (error) {
       console.error("Login Error:", error.response?.data || error.message);
       return rejectWithValue(error.response?.data.error || "Invalid email or password");
@@ -48,7 +39,7 @@ export const checkCustomerAuth = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       // First try to get from server
-      const response = await api.get(
+      const response = await axios.get(
         "/api/customers/check-auth"
       );
       
@@ -59,27 +50,10 @@ export const checkCustomerAuth = createAsyncThunk(
           isCustomerAuthenticated: true,
           customer: response.data.customer
         };
-      }
-      
-      // If server says not authenticated, try backup from localStorage
-      // const storedAuth = localStorage.getItem('customerAuth');
-      // if (storedAuth) {
-      //   const parsedAuth = JSON.parse(storedAuth);
-      //   if (parsedAuth.isCustomerAuthenticated) {
-      //     return parsedAuth;
-      //   }
-      // }
-      
+      }      
       return { isCustomerAuthenticated: false };
     } catch (error) {
-      console.error("Check Customer Auth Error:", error.response?.data || error.message);
-      
-      // If server request fails, try backup from localStorage
-      // const storedAuth = localStorage.getItem('customerAuth');
-      // if (storedAuth) {
-      //   return JSON.parse(storedAuth);
-      // }
-      
+      console.error("Check Customer Auth Error:", error.response?.data || error.message);      
       return { isCustomerAuthenticated: false };
     }
   }
@@ -90,13 +64,11 @@ export const logoutCustomer = createAsyncThunk(
   "customerAuth/logoutCustomer",
   async (_, { rejectWithValue }) => {
     try {
-      await api.post(
+      await axios.post(
         "/api/customers/logout"
       );
-      
-      // Clear localStorage on logout
-      // localStorage.removeItem('customerAuth');
-      
+      // Remove JWT on logout
+      localStorage.removeItem('jwtToken');
       return { success: true };
     } catch (error) {
       console.error("Logout Error:", error.response?.data || error.message);
@@ -110,18 +82,16 @@ export const loginRestaurant = createAsyncThunk(
   "restaurantAuth/loginRestaurant",
   async (credentials, { rejectWithValue }) => {
     try {
-      const response = await api.post(
+      const response = await axios.post(
         "/api/restaurants/login",
         credentials
       );
-      
-      // Store in localStorage as backup
-      // localStorage.setItem('restaurantAuth', JSON.stringify({
-      //   isRestaurantAuthenticated: true,
-      //   restaurant: response.data.restaurant
-      // }));
-      
-      return response.data.restaurant;
+      // Store JWT in localStorage
+      if (response.data.token) {
+        localStorage.setItem('jwtToken', response.data.token);
+      }
+      // Return both restaurant and token for reducer
+      return { restaurant: response.data.restaurant, token: response.data.token };
     } catch (error) {
       return rejectWithValue(error.response?.data.error || "Invalid email or password");
     }
@@ -134,7 +104,7 @@ export const checkRestaurantAuth = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       // First try to get from server
-      const response = await api.get(
+      const response = await axios.get(
         "/api/restaurants/check-auth"
       );
       
@@ -148,25 +118,9 @@ export const checkRestaurantAuth = createAsyncThunk(
         };
       }
       
-      // If server says not authenticated, try backup from localStorage
-      // const storedAuth = localStorage.getItem('restaurantAuth');
-      // if (storedAuth) {
-      //   const parsedAuth = JSON.parse(storedAuth);
-      //   if (parsedAuth.isRestaurantAuthenticated) {
-      //     return parsedAuth;
-      //   }
-      // }
-      
       return { isRestaurantAuthenticated: false };
     } catch (error) {
       console.error("Check Restaurant Auth Error:", error.response?.data || error.message);
-      
-      // If server request fails, try backup from localStorage
-      // const storedAuth = localStorage.getItem('restaurantAuth');
-      // if (storedAuth) {
-      //   return JSON.parse(storedAuth);
-      // }
-      
       return { isRestaurantAuthenticated: false };
     }
   }
@@ -177,13 +131,11 @@ export const logoutRestaurant = createAsyncThunk(
   "restaurantAuth/logoutRestaurant",
   async (_, { rejectWithValue }) => {
     try {
-      await api.post(
+      await axios.post(
         "/api/restaurants/logout"
       );
-      
-      // Clear localStorage on logout
-      // localStorage.removeItem('restaurantAuth');
-      
+      // Removing JWT on logout
+      localStorage.removeItem('jwtToken');
       return { success: true };
     } catch (error) {
       console.error("Logout Error:", error.response?.data || error.message);
@@ -213,7 +165,7 @@ const authSlice = createSlice({
       .addCase(loginCustomer.fulfilled, (state, action) => {
         state.loading = false;
         state.isCustomerAuthenticated = true;
-        state.customer = action.payload;
+        state.customer = action.payload.customer;
         state.error = null;
       })
       .addCase(loginCustomer.rejected, (state, action) => {
@@ -253,7 +205,7 @@ const authSlice = createSlice({
       .addCase(loginRestaurant.fulfilled, (state, action) => {
         state.loading = false;
         state.isRestaurantAuthenticated = true;
-        state.restaurant = action.payload;
+        state.restaurant = action.payload.restaurant;
         state.error = null;
       })
       .addCase(loginRestaurant.rejected, (state, action) => {

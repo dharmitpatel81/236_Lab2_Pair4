@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.2.1
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+
+  kafka:
+    image: confluentinc/cp-kafka:7.2.1
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+
+  backend:
+    build: ./Backend
+    environment:
+      PORT: 3000
+      JWT_SECRET: 68c9c76779ff636b88c48008c3fc7cb177675412a457b818c8003d80ee260246fd6d8d71440a720c0120b50832007e571f6707dbf2d41e1efb14b46ea1e68e21
+      MONGODB_URI: {MONGO_URI}
+      CLOUDINARY_CLOUD_NAME: {CLOUD_NAME}
+      CLOUDINARY_API_KEY: {API__KEY}
+      CLOUDINARY_API_SECRET: {API__SECRET}
+      KAFKA_BROKER: kafka:9092
+    depends_on:
+      - kafka
+    ports:
+      - "3000:3000"
+
+  frontend:
+    build: ./Frontend
+    ports:
+      - "5173:5173"

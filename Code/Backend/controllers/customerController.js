@@ -258,12 +258,12 @@ exports.login = async (req, res) => {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
-    // Set up session
-    req.session.userId = customer._id;
-    req.session.role = 'customer';
-
+    // Issue JWT
+    const { generateToken } = require('../utils/jwt');
+    const token = generateToken({ _id: customer._id, role: 'customer' });
     res.json({
         message: 'Login successful',
+        token,
         customer: {
           id: customer._id,
           firstName: customer.firstName,
@@ -281,7 +281,10 @@ exports.login = async (req, res) => {
 exports.getProfile = async (req, res) => {
   try {
     // Always use ID from params
-    const customerId = req.params.id;
+    const customerId = req.user.id || req.user._id;
+    if (customerId.toString() !== req.params.id.toString()) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
     
     const customer = await Customer.findById(customerId);
     if (!customer) {
@@ -297,7 +300,10 @@ exports.getProfile = async (req, res) => {
 exports.updateProfile = async (req, res) => {
   try {
     // Always use ID from params
-    const customerId = req.params.id;
+    const customerId = req.user.id || req.user._id;
+    if (customerId.toString() !== req.params.id.toString()) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
     const { firstName, lastName, email, phone, dateOfBirth, imageUrl, currentPassword, newPassword } = req.body;
 
     // Validate email format if provided
@@ -384,7 +390,7 @@ exports.addAddress = async (req, res) => {
       });
     }
     const { label, street, city, state, country, zipCode, isPrimary } = req.body;
-    const customerId = req.session.userId;
+    const customerId = req.user.id || req.user._id;
 
     const customer = await Customer.findById(customerId);
     if (!customer) {
@@ -442,7 +448,7 @@ exports.updateAddress = async (req, res) => {
     }
     const { addressId } = req.params;
     const { label, street, city, state, country, zipCode, isPrimary } = req.body;
-    const customerId = req.session.userId;
+    const customerId = req.user.id || req.user._id;
 
     const customer = await Customer.findById(customerId);
     if (!customer) {
@@ -506,7 +512,7 @@ exports.updateAddress = async (req, res) => {
 exports.deleteAddress = async (req, res) => {
   try {
     const { addressId } = req.params;
-    const customerId = req.session.userId;
+    const customerId = req.user.id || req.user._id;
 
     const customer = await Customer.findById(customerId);
     if (!customer) {
@@ -539,21 +545,18 @@ exports.deleteAddress = async (req, res) => {
   }
 };
 
-// Logout customer
+// Logout customer (JWT: just tell frontend to remove token)
 exports.logout = (req, res) => {
-  req.session.destroy((err) => {
-    if (err) {
-      return res.status(500).json({ message: 'Error destroying session', error: err.message });
-    }
-    res.clearCookie('connect.sid');
-    res.json({ message: 'Logged out successfully' });
-  });
+  res.json({ message: 'Logged out successfully' });
 };
 
 // Delete customer account
 exports.deleteAccount = async (req, res) => {
   try {
-    const customerId = req.params.id;
+    const customerId = req.user.id || req.user._id;
+    if (customerId.toString() !== req.params.id.toString()) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
 
     // Find and delete the customer
     const deletedCustomer = await Customer.findByIdAndDelete(customerId);
@@ -569,15 +572,18 @@ exports.deleteAccount = async (req, res) => {
   }
 };
 
-
-
 // Order-related functions
 
 // Create a new order
+const { connectProducer, publishOrder } = require('../kafkaClient');
+
+// Ensure Kafka producer is connected when the server starts
+connectProducer().catch(console.error);
+
 exports.createOrder = async (req, res) => {
   try {
     const { items, isDelivery, addressId } = req.body;
-    const customerId = req.session.userId;
+    const customerId = req.user.id || req.user._id;
     const restaurantId = req.params.restaurantId;
 
     // Validate items array
@@ -777,6 +783,22 @@ exports.createOrder = async (req, res) => {
 
     await order.save();
 
+    // After saving the order, publish to Kafka (customer-orders topic)
+    // This lets the restaurant side know a new order has been placed
+    try {
+      await publishOrder({
+        orderId: order._id,
+        status: order.status,
+        customerId: order.customerId,
+        restaurantId: order.restaurantId,
+        createdAt: order.createdAt,
+        // Add more fields if needed
+      });
+    } catch (kafkaErr) {
+      // Log Kafka errors but do not block order creation for the customer
+      console.error('Failed to publish order to Kafka:', kafkaErr);
+    }
+
     res.status(201).json({
       message: 'Order created successfully',
       order
@@ -884,7 +906,7 @@ exports.getOrderDetails = async (req, res) => {
 exports.cancelOrder = async (req, res) => {
   try {
     const { orderId } = req.params;
-    const customerId = req.session.userId;
+    const customerId = req.user.id || req.user._id;
     const order = await Order.findOne({
       _id: orderId,
       customerId: customerId
@@ -916,11 +938,9 @@ exports.cancelOrder = async (req, res) => {
 // Check customer authentication status
 exports.checkAuth = async (req, res) => {
   try {
-    // Check if user is authenticated via session
-    if (req.session.userId && req.session.role === 'customer') {
+    if (req.user && req.user.role === 'customer') {
       // Find the customer to verify they exist in the database
-      const customer = await Customer.findById(req.session.userId);
-      
+      const customer = await Customer.findById(req.user.id || req.user._id);
       if (customer) {
         return res.json({
           isCustomerAuthenticated: true,
@@ -935,8 +955,7 @@ exports.checkAuth = async (req, res) => {
         });
       }
     }
-    
-    // If no valid session or customer not found
+    // If no valid JWT or customer not found
     return res.json({
       isCustomerAuthenticated: false
     });

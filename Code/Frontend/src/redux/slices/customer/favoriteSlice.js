@@ -1,9 +1,6 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import axios from "../../../config/axios";
 
-// Set axios defaults
-axios.defaults.withCredentials = true;
-
 // Base URL for API - use proxied path instead of full URL
 const API_BASE_URL = "/api/customers";
 

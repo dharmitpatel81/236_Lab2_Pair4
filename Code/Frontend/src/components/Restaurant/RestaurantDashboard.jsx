@@ -835,7 +835,7 @@ const RestaurantDashboard = () => {
                                                 opacity: statusChangeInfo.isVisible ? 1 : 0,
                                                 transition: 'opacity 0.5s ease-in-out'
                                             }}>
-                                            Status changed from <strong>{statusChangeInfo.from.toUpperCase()}</strong> to <strong>{statusChangeInfo.to.toUpperCase()}</strong>
+                                            Status changed from <strong>{statusChangeInfo.from.replace(/_/g, ' ').toUpperCase()}</strong> to <strong>{statusChangeInfo.to.replace(/_/g, ' ').toUpperCase()}</strong>
                                         </div>
                                     )}
                                     {/* Card header */}
@@ -878,7 +878,15 @@ const RestaurantDashboard = () => {
                                                             id={`status-dropdown-${order.id}`}
                                                             className={`badge ${getStatusBadgeClass(order.status)} rounded-2 px-2 py-1`}
                                                         >
-                                                            {order.status.toUpperCase().replace('_', ' ')}
+                                                            {/*
+                                                                Format status for display: Capitalize first letter and replace underscores with spaces for readability
+                                                                Example: 'on_the_way' -> 'On the way'
+                                                            */}
+                                                            {/*
+                                                                Format status for display: All capitals and replace underscores with spaces for readability
+                                                                Example: 'on_the_way' -> 'ON THE WAY'
+                                                            */}
+                                                            {order.status.replace(/_/g, ' ').toUpperCase()}
                                                         </Dropdown.Toggle>
                                                         <Dropdown.Menu>
                                                             <div className="dropdown-animate">
@@ -892,7 +900,13 @@ const RestaurantDashboard = () => {
                                                                         disabled={st === order.status}
                                                                         style={st === order.status ? { cursor: 'not-allowed' } : undefined}
                                                                     >
-                                                                        {(st[0].toUpperCase() + st.slice(1)).replaceAll('_', ' ')}
+                                                                        {/*
+    Format status for dropdown: Capitalize first letter and replace underscores with spaces for readability
+*/}
+{/*
+    Format status for dropdown: All capitals and replace underscores with spaces for readability
+*/}
+{st.replace(/_/g, ' ').toUpperCase()}
                                                                     </Dropdown.Item>
                                                                 ))}
                                                             </div>

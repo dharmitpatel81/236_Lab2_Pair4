@@ -1,14 +1,14 @@
 const express = require('express');
 const router = express.Router();
 const dishController = require('../controllers/dishController');
-const { authenticateRestaurant } = require('../middleware/auth');
+const { checkRestaurant } = require('../utils/passport');
 const { uploadImage } = require('../utils/imageUpload');
 
 // Protected routes - only for authenticated restaurants
-router.post('/', authenticateRestaurant, dishController.createDish);
-router.put('/:dishId', authenticateRestaurant, dishController.updateDish);
-router.delete('/:dishId', authenticateRestaurant, dishController.deleteDish);
-router.patch('/:dishId/availability', authenticateRestaurant, dishController.toggleAvailability);
+router.post('/', checkRestaurant, dishController.createDish);
+router.put('/:dishId', checkRestaurant, dishController.updateDish);
+router.delete('/:dishId', checkRestaurant, dishController.deleteDish);
+router.patch('/:dishId/availability', checkRestaurant, dishController.toggleAvailability);
 
 // Image upload route
 router.post('/upload-image', async (req, res) => {

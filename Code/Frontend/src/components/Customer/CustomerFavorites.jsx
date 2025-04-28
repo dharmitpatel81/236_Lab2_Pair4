@@ -116,16 +116,15 @@ const CustomerFavorites = () => {
     };
     
     // Function to get correct image URL
+    // Only absolute URLs (e.g., from Cloudinary) are supported. Relative paths are not used.
     const getImageUrl = (imagePath) => {
         if (!imagePath) return DEFAULT_IMAGE_PLACEHOLDER;
-        
-        // Check if the URL is already absolute
+        // Only use the image if it's an absolute URL (starts with http)
         if (imagePath.startsWith('http')) {
             return imagePath;
         }
-        
-        // For relative URLs, use the API base URL
-        return `${process.env.REACT_APP_API_URL || ''}${imagePath}`;
+        // Fallback to placeholder if not absolute
+        return DEFAULT_IMAGE_PLACEHOLDER;
     };
 
     return (

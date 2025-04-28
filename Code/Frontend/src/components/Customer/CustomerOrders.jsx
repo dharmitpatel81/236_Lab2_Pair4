@@ -16,25 +16,29 @@ import Popover from 'react-bootstrap/Popover';
 
 const DEFAULT_IMAGE_PLACEHOLDER = "https://res.cloudinary.com/dvylvq84d/image/upload/v1744151036/ImagePlaceholder_gg1xob.png";
 
+// Match badge color scheme to RestaurantDashboard for consistent user experience
 const getStatusBadgeClass = (status) => {
-    switch (status.toLowerCase()) {
-        case 'new':
-        case 'received':
-            return 'bg-info';
-        case 'preparing':
-            return 'bg-primary';
-        case 'pickup_ready':
-        case 'on_the_way':
-            return 'bg-warning';
-        case 'delivered':
-        case 'picked_up':
-            return 'bg-success';
-        case 'cancelled':
-            return 'bg-danger';
-        default:
-            return 'bg-secondary';
+    switch (status) {
+        case 'new': return 'bg-primary text-white';
+        case 'received': return 'bg-info text-white';
+        case 'preparing': return 'bg-warning text-dark';
+        case 'on_the_way': return 'bg-secondary text-white';
+        case 'pickup_ready': return 'bg-dark text-white';
+        case 'delivered': return 'bg-success text-white';
+        case 'picked_up': return 'bg-success text-white';
+        case 'cancelled': return 'bg-danger text-white';
+        default: return 'bg-light text-dark';
     }
 };
+// Colors:
+// - NEW: blue (primary)
+// - RECEIVED: light blue (info)
+// - PREPARING: yellow (warning)
+// - ON THE WAY: gray (secondary)
+// - PICKUP READY: black (dark)
+// - DELIVERED/PICKED UP: green (success)
+// - CANCELLED: red (danger)
+// - Default: light gray
 
 const getOrderTypeIcon = (orderType) => {
     return orderType.toLowerCase() === "pickup" 
@@ -276,7 +280,10 @@ const CustomerOrders = () => {
                         <Dropdown.Menu className="px-3" style={{minWidth:'200px'}}>
                             <div className="dropdown-animate">
                                 {['new','received','preparing','pickup_ready','picked_up','on_the_way','delivered','cancelled'].map(st => (
-                                    <Form.Check key={st} inline type="checkbox" id={`status-${st}`} label={st[0].toUpperCase()+st.slice(1).replaceAll('_',' ')} checked={filterStatuses.includes(st)} onChange={()=>toggleFilterStatus(st)} className="my-1 text-dark"/>
+                                    <Form.Check key={st} inline type="checkbox" id={`status-${st}`} /*
+    Format status for filter: All capitals and replace underscores with spaces for readability
+*/
+label={st.replace(/_/g, ' ').toUpperCase()} checked={filterStatuses.includes(st)} onChange={()=>toggleFilterStatus(st)} className="my-1 text-dark"/>
                                 ))}
                             </div>
                         </Dropdown.Menu>
@@ -325,7 +332,15 @@ const CustomerOrders = () => {
                                                             }
                                                 </span>
                                                         <span className={`badge ${getStatusBadgeClass(order.status)} rounded-2 px-2 py-1`}>
-                                                            {order.status.toUpperCase().replace('_', ' ')}
+                                                            {/*
+    Format status for display: Capitalize first letter and replace underscores with spaces for readability
+    Example: 'on_the_way' -> 'On the way'
+*/}
+{/*
+    Format status for display: All capitals and replace underscores with spaces for readability
+    Example: 'on_the_way' -> 'ON THE WAY'
+*/}
+{order.status.replace(/_/g, ' ').toUpperCase()}
                                                 </span>
                                                     </div>
                                                 </div>
@@ -457,7 +472,13 @@ const CustomerOrders = () => {
                                     <div>
                                         <span className="fw-medium">Order Status:</span>
                                         <span className={`badge ${getStatusBadgeClass(orderDetails.status)} rounded-2 px-2 py-1 ms-2`}>
-                                            {orderDetails.status.toUpperCase().replace('_', ' ')}
+                                            {/*
+    Format status for display: Capitalize first letter and replace underscores with spaces for readability
+*/}
+{/*
+    Format status for display: All capitals and replace underscores with spaces for readability
+*/}
+{orderDetails.status.replace(/_/g, ' ').toUpperCase()}
                                         </span>
                                     </div>
                                     <div>

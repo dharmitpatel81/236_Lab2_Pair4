@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import axios from 'axios';
+import axios from '../../config/axios';
 import { useSelector } from 'react-redux';
 import NavbarDark from '../Common/NavbarDark';
 import { useNavigate } from "react-router-dom";
@@ -201,7 +201,7 @@ const ManageDishes = () => {
         try {
             const response = await axios.post("/api/dishes/upload-image", formData, {
                 headers: { "Content-Type": "multipart/form-data" },
-                withCredentials: true,
+                
             });
 
             const updatedDishes = [...dishes];
