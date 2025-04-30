@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Set default base URL
-axios.defaults.baseURL = 'http://127.0.0.1:3000';
+axios.defaults.baseURL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 // Attaching JWT to requests for authorization
 axios.interceptors.request.use(

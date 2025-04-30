@@ -27,11 +27,15 @@ const NavSidebar = () => {
   }, [isMenuOpen]);
 
   // Handle Logout
-  const handleLogout = () => {
+  const handleLogout = async () => {
     if (isCustomerAuthenticated) {
-      dispatch(logoutCustomer());
+      await dispatch(logoutCustomer()).then(() => {
+        navigate('/customer/login');
+      });
     } else if (isRestaurantAuthenticated) {
-      dispatch(logoutRestaurant());
+      await dispatch(logoutRestaurant()).then(() => {
+        navigate('/restaurant/login');
+      });
     }
   };
 

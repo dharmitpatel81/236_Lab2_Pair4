@@ -27,10 +27,10 @@ services:
     environment:
       PORT: 3000
       JWT_SECRET: 68c9c76779ff636b88c48008c3fc7cb177675412a457b818c8003d80ee260246fd6d8d71440a720c0120b50832007e571f6707dbf2d41e1efb14b46ea1e68e21
-      MONGODB_URI: {MONGO_URI}
-      CLOUDINARY_CLOUD_NAME: {CLOUD_NAME}
-      CLOUDINARY_API_KEY: {API__KEY}
-      CLOUDINARY_API_SECRET: {API__SECRET}
+      MONGODB_URI: mongodb+srv://shatayuthakur:cyborg12@cluster0.n55lh.mongodb.net/lab2
+      CLOUDINARY_CLOUD_NAME: dvylvq84d
+      CLOUDINARY_API_KEY: 949587494197257
+      CLOUDINARY_API_SECRET: Yfgluabo_YpWXFgOV3HuABmIzok
       KAFKA_BROKER: kafka:9092
     depends_on:
       - kafka

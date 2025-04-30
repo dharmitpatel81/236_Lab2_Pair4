@@ -148,3 +148,16 @@ button:focus-visible {
     font-size: clamp(1.25rem, 3vw, 2rem) !important;
   }
 }
+
+/* Custom Toastify */
+/* Toast body customization */
+.custom-toast-light {
+  background-color: white !important;
+  color: black !important;
+  font-weight: 500;
+}
+
+/* Progress bar (timer) color */
+.custom-progress-dark {
+  background: black !important;
+}

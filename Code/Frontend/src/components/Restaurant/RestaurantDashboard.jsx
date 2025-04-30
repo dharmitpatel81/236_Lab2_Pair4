@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
+import { io } from 'socket.io-client';
 import { FaUtensils, FaClock, FaMapMarkerAlt } from "react-icons/fa";
 import EditProfileModal from './EditProfileModal';
 import { 
@@ -17,14 +18,13 @@ import "bootstrap-icons/font/bootstrap-icons.css";
 import { useNavigate } from "react-router-dom";
 import { Modal, Button, Dropdown, OverlayTrigger, Popover, Table, Spinner, Form } from 'react-bootstrap';
 import axios from '../../config/axios';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+
 
 const DEFAULT_IMAGE_PLACEHOLDER = "https://res.cloudinary.com/dvylvq84d/image/upload/v1744151036/ImagePlaceholder_gg1xob.png";
 
-// --- Password Change Modal State and Logic ---
-// (These must be inside the RestaurantDashboard component)
-// (Do not place hooks at the top-level module scope)
-
-// Add the CSS for status pill toggle
+// CSS for status pill toggle
 const statusToggleStyles = `
 .status-pill-toggle {
   position: relative;
@@ -121,15 +121,21 @@ const getStatusBadgeClass = (status) => {
 };
 
 const RestaurantDashboard = () => {
-    // --- Password Change Modal State and Logic ---
+
+    const socket = io(import.meta.env.VITE_API_URL || 'http://localhost:3000', {
+        transports: ['websocket'],
+    });
+
     // State for showing/hiding the change password modal
     const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
+
     // State for password fields
     const [restaurantPassword, setRestaurantPassword] = useState({
       currentPassword: '',
       newPassword: '',
       confirmPassword: ''
     });
+
     // State for password validation criteria
     const [restaurantPasswordCriteria, setRestaurantPasswordCriteria] = useState({
       length: false,
@@ -179,6 +185,7 @@ const RestaurantDashboard = () => {
     // Handle restaurant password change submit using Redux thunk
     const handleRestaurantPasswordChange = async (e) => {
       e.preventDefault();
+
       // Reset errors
       setValidationErrors({ ...validationErrors, password: "" });
       setPasswordError("");
@@ -286,6 +293,23 @@ const RestaurantDashboard = () => {
         setTimeout(() => setShowProfileSuccess(false), 3000);
     };
 
+    // Refetch orders on new socket order event
+    useEffect(() => {
+        socket.on('new_order', (order) => {
+            toast(`New Order: ${order.orderNumber} received!`,
+                {position: 'top-center',
+                autoClose: 5000,
+                className: 'custom-toast-light',
+                progressClassName: 'custom-progress-dark'
+            });
+          dispatch(fetchRestaurantOrders(restaurantId));
+        });
+    
+        return () => {
+          socket.off('new_order');
+        };
+    }, []);
+
     useEffect(() => {
         if (restaurantId) {
             dispatch(fetchRestaurant(restaurantId));
@@ -304,6 +328,25 @@ const RestaurantDashboard = () => {
             dispatch(fetchRestaurantOrders(restaurantId));
         }
     }, [dispatch, restaurantId]);
+
+    // Listen for order cancellation socket event
+    useEffect(() => {
+        if (!socket) return;
+        socket.on('order_cancelled', (cancelEvent) => {
+            toast.warn(cancelEvent.event || `Order ${cancelEvent.orderNumber} has been cancelled by customer!`, {
+                position: 'top-center',
+                autoClose: 5000,
+                className: 'custom-toast-light',
+                progressClassName: 'custom-progress-dark',
+            });
+            // Optionally, refetch orders if needed:
+            dispatch(fetchRestaurantOrders(restaurantId));
+        });
+        // Clean up
+        return () => {
+            socket.off('order_cancelled');
+        };
+    }, [socket, dispatch, restaurantId]);
 
     const handleUpdateDishClick = () => {
         navigate('/restaurant/dishes');
@@ -474,6 +517,7 @@ const RestaurantDashboard = () => {
         <>
             <style>{statusToggleStyles}</style>
             <NavbarDark />
+            <ToastContainer />
             {showProfileSuccess && (
                 <div className="container mt-3 mb-3">
                     <div className="alert alert-success">
@@ -753,7 +797,7 @@ const RestaurantDashboard = () => {
             <div className="container mt-0">
                 <div className="d-flex align-items-center justify-content-start flex-wrap mb-3">
                     <h3 className="fw-bold me-3">Orders</h3>
-                    <Dropdown className="me-3">
+                    <Dropdown className="me-3 mb-2">
                         <Dropdown.Toggle variant="bg-white rounded-pill py-1 px-3" id="sort-by-dropdown" style={{border: '1px solid #c0c0c0'}}>
                             Sort By: {sortBy === 'latest' ? 'Latest' : 'Oldest'}
                         </Dropdown.Toggle>
@@ -764,7 +808,7 @@ const RestaurantDashboard = () => {
                             </div>
                         </Dropdown.Menu>
                     </Dropdown>
-                    <Dropdown className="me-3">
+                    <Dropdown className="me-3 mb-2">
                         <Dropdown.Toggle variant="bg-white rounded-pill py-1 px-3" id="filter-type-dropdown" style={{border: '1px solid #c0c0c0'}}>Filter By Type</Dropdown.Toggle>
                         <Dropdown.Menu className="px-3">
                             <div className="dropdown-animate">
@@ -773,7 +817,7 @@ const RestaurantDashboard = () => {
                             </div>
                         </Dropdown.Menu>
                     </Dropdown>
-                    <Dropdown className="me-3">
+                    <Dropdown className="me-3 mb-2">
                         <Dropdown.Toggle variant="bg-white rounded-pill py-1 px-3" id="filter-status-dropdown" style={{border: '1px solid #c0c0c0'}}>Filter By Status</Dropdown.Toggle>
                         <Dropdown.Menu className="px-3" style={{minWidth: '200px'}}>
                             <div className="dropdown-animate">
@@ -871,21 +915,16 @@ const RestaurantDashboard = () => {
                                                         onClick={e => e.stopPropagation()}
                                                         onSelect={newStatus => handleStatusChange(order.id, newStatus, order.isDelivery)}
                                                         className="d-inline-block"
+                                                        disabled={order.cancelledByCustomer}
+                                                        style={{ cursor: order.cancelledByCustomer ? 'not-allowed' : 'pointer', opacity: order.cancelledByCustomer ? 0.5 : 1 }}
                                                     >
                                                         <Dropdown.Toggle
                                                             as="button"
                                                             type="button"
                                                             id={`status-dropdown-${order.id}`}
                                                             className={`badge ${getStatusBadgeClass(order.status)} rounded-2 px-2 py-1`}
+                                                            disabled={order.cancelledByCustomer}
                                                         >
-                                                            {/*
-                                                                Format status for display: Capitalize first letter and replace underscores with spaces for readability
-                                                                Example: 'on_the_way' -> 'On the way'
-                                                            */}
-                                                            {/*
-                                                                Format status for display: All capitals and replace underscores with spaces for readability
-                                                                Example: 'on_the_way' -> 'ON THE WAY'
-                                                            */}
                                                             {order.status.replace(/_/g, ' ').toUpperCase()}
                                                         </Dropdown.Toggle>
                                                         <Dropdown.Menu>
@@ -900,13 +939,7 @@ const RestaurantDashboard = () => {
                                                                         disabled={st === order.status}
                                                                         style={st === order.status ? { cursor: 'not-allowed' } : undefined}
                                                                     >
-                                                                        {/*
-    Format status for dropdown: Capitalize first letter and replace underscores with spaces for readability
-*/}
-{/*
-    Format status for dropdown: All capitals and replace underscores with spaces for readability
-*/}
-{st.replace(/_/g, ' ').toUpperCase()}
+                                                                        {st.replace(/_/g, ' ').toUpperCase()}
                                                                     </Dropdown.Item>
                                                                 ))}
                                                             </div>
@@ -919,9 +952,12 @@ const RestaurantDashboard = () => {
                                         <div className="d-flex flex-column align-items-between mb-0 py-0">
                                             {/* Placed on text */}
                                             <div className="d-flex align-items-center mb-0 py-0">
-                                                <p className="text-muted small fst-italic my-1"><FaClock className="me-1 mb-0 mb-1 text-secondary" size={12}/>Placed on: {new Date(order.createdAt).toLocaleString()}</p>
+                                                <p className="text-muted small fst-italic my-1"><FaClock className="me-1 mb-0 mb-0 text-secondary" size={12}/>Placed on: {new Date(order.createdAt).toLocaleString()}</p>
                                             </div>
-                                            
+                                            {/* Cancelled by Customer conditional text */}
+                                            {order?.cancelledByCustomer && (
+                                                <p className="text-danger small fst-italic mb-1"><i className="bi bi-x-circle me-1 mb-0 text-danger" style={{ fontSize: 12 }}/>Order Cancelled By Customer</p>
+                                            )}
                                             {/* Restaurant note if any*/}
                                             {order?.restaurantNote && order?.status === "cancelled" && (
                                                 <OverlayTrigger

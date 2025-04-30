@@ -6,6 +6,11 @@ const { uploadImage } = require('../utils/imageUpload');
 
 const bcrypt = require('bcryptjs');
 
+const { connectProducer, publishOrder, publishOrderCancel } = require('../kafka/kafkaClient');
+
+// Ensure Kafka producer is connected when the server starts
+connectProducer().catch(console.error);
+
 // Tax rates by state (in percentage)
 const STATE_TAX_RATES = {
   'Alabama': 4.0,
@@ -572,14 +577,10 @@ exports.deleteAccount = async (req, res) => {
   }
 };
 
+
 // Order-related functions
 
 // Create a new order
-const { connectProducer, publishOrder } = require('../kafkaClient');
-
-// Ensure Kafka producer is connected when the server starts
-connectProducer().catch(console.error);
-
 exports.createOrder = async (req, res) => {
   try {
     const { items, isDelivery, addressId } = req.body;
@@ -746,7 +747,7 @@ exports.createOrder = async (req, res) => {
     // Generate a unique order number
     const orderNumber = await generateOrderNumber();
     
-    const order = new Order({
+    const orderEvent = {
       orderNumber,
       customerId: customerId,
       customerDetails: {
@@ -779,29 +780,18 @@ exports.createOrder = async (req, res) => {
       isDelivery,
       deliveryAddress,
       status: 'new'
-    });
+    };
 
-    await order.save();
-
-    // After saving the order, publish to Kafka (customer-orders topic)
-    // This lets the restaurant side know a new order has been placed
+    // Publish to Kafka (customer-orders topic)
     try {
-      await publishOrder({
-        orderId: order._id,
-        status: order.status,
-        customerId: order.customerId,
-        restaurantId: order.restaurantId,
-        createdAt: order.createdAt,
-        // Add more fields if needed
-      });
+      await publishOrder(orderEvent);
     } catch (kafkaErr) {
-      // Log Kafka errors but do not block order creation for the customer
-      console.error('Failed to publish order to Kafka:', kafkaErr);
+      console.error('Failed to publish order place event to Kafka:', kafkaErr);
     }
 
     res.status(201).json({
       message: 'Order created successfully',
-      order
+      order: orderEvent
     });
   } catch (error) {
     res.status(500).json({ message: 'Error creating order', error: error.message });
@@ -924,7 +914,11 @@ exports.cancelOrder = async (req, res) => {
     }
 
     order.status = 'cancelled';
+    order.cancelledByCustomer = true;
     await order.save();
+
+    // Publish order cancellation event to Kafka
+    await publishOrderCancel(order);
 
     res.json({
       message: 'Order cancelled successfully',

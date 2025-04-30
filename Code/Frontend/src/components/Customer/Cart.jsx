@@ -301,7 +301,7 @@ const Cart = () => {
                 dispatch(clearCart()); // Clear the cart
                 dispatch(resetOrderStatus());
                 navigate('/customer/orders');
-            }, 2000);
+            }, 4000);
         }
     }, [orderStatus, navigate, dispatch]);
 
@@ -389,7 +389,6 @@ const Cart = () => {
             
             if (selectedAddress?.state) {
                 taxRate = getTaxRate(selectedAddress.state);
-                console.log(`Using delivery address tax rate ${taxRate}% for state: ${selectedAddress.state}`);
             }
         } else if (orderType === "pickup" && restaurant?.address?.state) {
             // For pickup, use the restaurant's state

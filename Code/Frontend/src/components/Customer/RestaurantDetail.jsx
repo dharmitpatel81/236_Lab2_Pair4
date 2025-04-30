@@ -1405,12 +1405,12 @@ const RestaurantDetail = () => {
                                         ))}
                                     </div>
                                 ) : (
-                                    <p className="mb-3">
+                                    <div className="mb-3">
                                         <div className="d-flex justify-content-between">
                                             <span>{selectedDish?.sizes && selectedDish.sizes.length > 0 ? selectedDish.sizes[0].size : 'Standard'}</span>
                                             <span>${selectedDish?.sizes && selectedDish.sizes.length > 0 ? selectedDish.sizes[0].price.toFixed(2) : 'N/A'}</span>
                                         </div>
-                                    </p>
+                                    </div>
                                 )}
                             </div>
                             

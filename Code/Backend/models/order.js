@@ -142,6 +142,11 @@ const orderSchema = new mongoose.Schema({
     enum: ['new', 'received', 'preparing', 'on_the_way', 'pickup_ready', 'delivered', 'picked_up', 'cancelled'],
     default: 'new'
   },
+  // --- New field to disable status dropdown if cancelled by customer ---
+  cancelledByCustomer: {
+    type: Boolean,
+    default: null
+  },
   customerNote: {
     type: String,
     maxlength: 350,

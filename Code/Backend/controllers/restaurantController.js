@@ -3,11 +3,24 @@ const Dish = require('../models/dish');
 const Order = require('../models/order');
 const bcrypt = require('bcryptjs');
 
+const { connectProducer, publishOrderStatus } = require('../kafka/kafkaClient');
+
+// Ensure Kafka producer is connected when the server starts
+connectProducer().catch(console.error);
+
 // Validation functions
 const validateZipCode = (zipCode) => {
   const zipRegex = /^[0-9]{5,6}$/;
   return zipRegex.test(zipCode);
 };
+
+// Formatting order status (e.g on_the_way to On The Way, new to New)
+function formatStatus(status) {
+  return status
+    .split('_')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+}
 
 // Password validation function (exported for reuse)
 const validatePassword = (password) => {
@@ -742,6 +755,7 @@ exports.getRestaurantOrders = async (req, res) => {
         items: 1,
         status: 1,
         restaurantNote: 1,
+        cancelledByCustomer: 1,
         isDelivery: 1,
         subtotal: 1,
         taxRate: 1,
@@ -787,6 +801,7 @@ exports.getRestaurantOrders = async (req, res) => {
       deliveryAddress: order.deliveryAddress,
       customerNote: order.customerNote,
       restaurantNote: order.restaurantNote,
+      cancelledByCustomer: order.cancelledByCustomer,
       financials: {
         subtotal: order.subtotal,
         taxRate: order.taxRate,
@@ -807,7 +822,7 @@ exports.getRestaurantOrders = async (req, res) => {
   }
 };
 
-// Update order status
+// Update order status from restaurant-side
 exports.updateOrderStatus = async (req, res) => {
   try {
     const { orderId } = req.params;
@@ -868,13 +883,14 @@ exports.updateOrderStatus = async (req, res) => {
         });
       }
       
-      // Set the restaurant note
+      // Set the restaurant note (required for restaurant-initiated cancellations)
       order.restaurantNote = restaurantNote;
     }
 
     order.status = status;
     await order.save();
 
+    await publishOrderStatus(order, formatStatus(oldStatus), formatStatus(status));
 
     res.json({
       message: `Order status updated from ${oldStatus} to ${status} successfully`,

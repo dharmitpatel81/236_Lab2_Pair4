@@ -13,7 +13,9 @@ import Dropdown from 'react-bootstrap/Dropdown';
 import Form from 'react-bootstrap/Form';
 import OverlayTrigger from 'react-bootstrap/OverlayTrigger';
 import Popover from 'react-bootstrap/Popover';
-
+import { io } from 'socket.io-client';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 const DEFAULT_IMAGE_PLACEHOLDER = "https://res.cloudinary.com/dvylvq84d/image/upload/v1744151036/ImagePlaceholder_gg1xob.png";
 
 // Match badge color scheme to RestaurantDashboard for consistent user experience
@@ -61,6 +63,8 @@ const CustomerOrders = () => {
     const dispatch = useDispatch();
     const navigate = useNavigate();
     
+    const socket = io(import.meta.env.VITE_API_URL || 'http://localhost:3000');
+
     const customerId = useSelector((state) => state.auth.customer?.id);
     const customerOrders = useSelector((state) => state.order.customerOrders);
     const loadingCustomerOrders = useSelector((state) => state.order.loadingCustomerOrders);
@@ -85,6 +89,31 @@ const CustomerOrders = () => {
     // Ref for dropdown element
     const dropdownRef = useRef(null);
 
+
+    // Socket connection for real-time updates
+    useEffect(() => {
+        if (!customerId) return;
+      
+        const socket = io(import.meta.env.VITE_API_URL || 'http://localhost:3000');
+      
+        socket.on('order_status_update', (event) => {
+          toast(`${event.event}`,
+            { position: 'top-center',
+              autoClose: 5000,
+              className: 'custom-toast-light',
+              progressClassName: 'custom-progress-dark'
+            });
+          dispatch(fetchOrdersByCustomer(customerId)); // Trigger orders refresh on event
+        });
+      
+        return () => {
+          socket.off('order_status_update');
+          socket.disconnect();
+        };
+    }, [dispatch, customerId]);
+      
+
+    // Load orders on mount
     useEffect(() => {
         if (customerId) {
             dispatch(fetchOrdersByCustomer(customerId));
@@ -109,12 +138,12 @@ const CustomerOrders = () => {
         }
     }, [customerOrders]); // Re-initialize when orders change
 
-    // // For debugging
-    useEffect(() => {
-        if (customerOrders) {
-            console.log("Customer Orders:", customerOrders);
-        }
-    }, [customerOrders]);
+    // // // For debugging
+    // useEffect(() => {
+    //     if (customerOrders) {
+    //         console.log("Customer Orders:", customerOrders);
+    //     }
+    // }, [customerOrders]);
 
     const handleViewDetails = (orderId) => {
         setSelectedOrderId(orderId);
@@ -239,6 +268,7 @@ const CustomerOrders = () => {
     return (
         <>
         <NavbarDark />
+        <ToastContainer />
         <button
             className="btn text-dark border-0 d-flex ms-5 align-items-center mt-3 ms-3 fw-bold"
             style={{ backgroundColor: 'transparent' }}
@@ -253,7 +283,7 @@ const CustomerOrders = () => {
                 {customerOrders && customerOrders.orders && customerOrders.orders.length > 0 && (
                     <>
                     {/* Sort By dropdown */}
-                    <Dropdown className="me-3">
+                    <Dropdown className="me-3 mb-2">
                         <Dropdown.Toggle variant="bg-white rounded-pill py-1 px-3" id="sort-by-dropdown" style={{border:'1px solid #c0c0c0'}}>
                             Sort: {sortOption === 'latest' ? 'By Latest' : 'By Oldest'}
                         </Dropdown.Toggle>
@@ -265,7 +295,7 @@ const CustomerOrders = () => {
                         </Dropdown.Menu>
                     </Dropdown>
                     {/* Filter By Type */}
-                    <Dropdown className="me-3">
+                    <Dropdown className="me-3 mb-2">
                         <Dropdown.Toggle variant="bg-white rounded-pill py-1 px-3" id="filter-type-dropdown" style={{border:'1px solid #c0c0c0'}}>Filter By Type</Dropdown.Toggle>
                         <Dropdown.Menu className="px-3">
                             <div className="dropdown-animate">
@@ -275,7 +305,7 @@ const CustomerOrders = () => {
                         </Dropdown.Menu>
                     </Dropdown>
                     {/* Filter By Status */}
-                    <Dropdown className="me-3">
+                    <Dropdown className="me-3 mb-0">
                         <Dropdown.Toggle variant="bg-white rounded-pill py-1 px-3" id="filter-status-dropdown" style={{border:'1px solid #c0c0c0'}}>Filter By Status</Dropdown.Toggle>
                         <Dropdown.Menu className="px-3" style={{minWidth:'200px'}}>
                             <div className="dropdown-animate">
@@ -395,15 +425,8 @@ label={st.replace(/_/g, ' ').toUpperCase()} checked={filterStatuses.includes(st)
                                                     </div>
                                                 )}
 
-                                                <div className="mb-2">
-                                                        <p className="mb-0 small">
-                                                            <span className="text-dark fw-medium">Items Count: </span>
-                                                            {order.items.map(item => item.quantity).reduce((a, b) => a + b, 0)}
-                                                        </p>
-                                                    </div>
-                                                
                                                 {order.deliveryType.toLowerCase() === "pickup" && order.restaurantAddress && (
-                                                    <div className="mb-0">
+                                                    <div className="mb-2">
                                                         <p className="mb-0 small">
                                                             <i className="bi bi-shop me-1"></i>
                                                             <span className="text-dark fw-medium">Pickup from: </span>
@@ -411,6 +434,13 @@ label={st.replace(/_/g, ' ').toUpperCase()} checked={filterStatuses.includes(st)
                                                         </p>
                                                     </div>
                                                 )}
+
+                                                <div className="mb-0">
+                                                        <p className="mb-0 small">
+                                                            <span className="text-dark fw-medium">Items Count: </span>
+                                                            {order.items.map(item => item.quantity).reduce((a, b) => a + b, 0)}
+                                                        </p>
+                                                    </div>
                                                 
                                                 {/* Order Items Overview */}
                                                 <div className="order-items pt-0 mt-0">
@@ -698,7 +728,13 @@ label={st.replace(/_/g, ' ').toUpperCase()} checked={filterStatuses.includes(st)
                 <Modal.Footer className="border-0">
                     {orderDetails && (
                         <>
-                        <span className="text-muted fst-italic">{canCancelOrder(orderDetails.status) ? '' : 'You cannot cancel this order, it has been processed, please contact the restaurant'}</span>
+                        <span className="text-muted fst-italic">
+                            {orderDetails.cancelledByCustomer
+                                ? 'You have cancelled this order'
+                                : (canCancelOrder(orderDetails.status)
+                                    ? ''
+                                    : 'You cannot cancel this order, it has been processed, please contact the restaurant')}
+                        </span>
                         <Button 
                             variant="outline-danger" 
                             className=""

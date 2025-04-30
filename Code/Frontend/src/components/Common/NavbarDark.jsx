@@ -140,13 +140,13 @@ const NavSidebar = ({ hideToggle = false }) => {
   }, [isMenuOpen]);
 
   // Handle Logout
-  const handleLogout = () => {
+  const handleLogout = async () => {
     if (isCustomerAuthenticated) {
-      dispatch(logoutCustomer()).then(() => {
+      await dispatch(logoutCustomer()).then(() => {
         navigate('/customer/login');
       });
     } else if (isRestaurantAuthenticated) {
-      dispatch(logoutRestaurant()).then(() => {
+      await dispatch(logoutRestaurant()).then(() => {
         navigate('/restaurant/login');
       });
     }

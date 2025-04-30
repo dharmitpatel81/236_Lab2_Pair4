@@ -133,7 +133,7 @@ exports.updateRating = async (req, res) => {
     }
 
     // Check if the rating belongs to the customer
-    if (existingRating.customerId.toString() !== customerId) {
+    if (existingRating.customerId.toString() !== customerId.toString()) {
       return res.status(403).json({ message: 'Not authorized to update this rating' });
     }
 
@@ -179,7 +179,7 @@ exports.deleteRating = async (req, res) => {
     }
 
     // Check if the rating belongs to the customer
-    if (rating.customerId.toString() !== customerId) {
+    if (rating.customerId.toString() !== customerId.toString()) {
       return res.status(403).json({ message: 'Not authorized to delete this rating' });
     }
 

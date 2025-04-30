@@ -25,15 +25,15 @@ spec:
             - name: CLOUDINARY_API_KEY
               value: "949587494197257"
             - name: CLOUDINARY_API_SECRET
-              value: {API__SECRET}
+              value: Yfgluabo_YpWXFgOV3HuABmIzok
             - name: CLOUDINARY_CLOUD_NAME
-              value: {CLOUD_NAME}
+              value: dvylvq84d
             - name: JWT_SECRET
               value: 68c9c76779ff636b88c48008c3fc7cb177675412a457b818c8003d80ee260246fd6d8d71440a720c0120b50832007e571f6707dbf2d41e1efb14b46ea1e68e21
             - name: KAFKA_BROKER
               value: kafka:9092
             - name: MONGODB_URI
-              value: {MONGO_URI}
+              value: mongodb+srv://shatayuthakur:cyborg12@cluster0.n55lh.mongodb.net/lab2
             - name: PORT
               value: "3000"
           image: lab2-backend:latest

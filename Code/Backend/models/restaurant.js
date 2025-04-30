@@ -144,10 +144,8 @@ restaurantSchema.pre('save', async function(next) {
   try {
     // Check if password needs to be hashed
     if (needsPasswordHash(restaurant.password)) {
-      console.log('Hashing restaurant password in pre-save hook...');
       const salt = await bcrypt.genSalt(10);
       const hash = await bcrypt.hash(restaurant.password, salt);
-      console.log('Restaurant password hashed in pre-save:', hash);
       restaurant.password = hash;
     }
     next();
